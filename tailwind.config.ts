@@ -65,12 +65,12 @@ export default {
         '4xl': '1.5rem',
       },
       boxShadow: {
-        'glow-violet': '0 0 20px rgba(139, 92, 246, 0.35)',
-        'glow-cyan': '0 0 20px rgba(6, 182, 212, 0.35)',
-        'glow-pink': '0 0 20px rgba(236, 72, 153, 0.35)',
-        card: '0 4px 24px rgba(0,0,0,0.4)',
-        'card-hover': '0 8px 40px rgba(0,0,0,0.6)',
-        float: '0 12px 48px rgba(0,0,0,0.7)',
+        'glow-violet': '0 0 16px rgba(139, 92, 246, 0.12)',
+        'glow-cyan': '0 0 16px rgba(6, 182, 212, 0.12)',
+        'glow-pink': '0 0 16px rgba(236, 72, 153, 0.12)',
+        card: '0 2px 12px rgba(0,0,0,0.08)',
+        'card-hover': '0 4px 20px rgba(0,0,0,0.12)',
+        float: '0 4px 24px rgba(0,0,0,0.10)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4,0,0.6,1) infinite',

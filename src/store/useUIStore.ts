@@ -13,6 +13,8 @@ interface UIStore extends UIState {
   dismissToast: (id: string) => void;
   teamPanelOpen: boolean;
   toggleTeamPanel: () => void;
+  taskPanelOpen: boolean;
+  toggleTaskPanel: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -28,6 +30,7 @@ export const useUIStore = create<UIStore>((set) => ({
   },
   toasts: [],
   teamPanelOpen: false,
+  taskPanelOpen: false,
 
   openModal: (type, context = {}) =>
     set({ activeModal: type, modalContext: context }),
@@ -56,4 +59,5 @@ export const useUIStore = create<UIStore>((set) => ({
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
   toggleTeamPanel: () => set((s) => ({ teamPanelOpen: !s.teamPanelOpen })),
+  toggleTaskPanel: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
 }));

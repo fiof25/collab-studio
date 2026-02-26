@@ -60,7 +60,6 @@ html.light {
     border: 1px solid rgb(var(--line));
     border-radius: 0.75rem;
     overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   }
 
   .react-flow__controls-button {

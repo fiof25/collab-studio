@@ -102,7 +102,7 @@ export function TeamPanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
           transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-          className="fixed right-0 top-12 bottom-0 z-30 w-72 flex flex-col bg-surface-1 border-l border-line shadow-float"
+          className="fixed right-0 top-12 bottom-0 z-30 w-72 flex flex-col bg-surface-1 border-l border-line"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-line flex-shrink-0">

@@ -7,6 +7,7 @@ import { CanvasPage } from '@/pages/CanvasPage';
 import { BranchPage } from '@/pages/BranchPage';
 import { ToastContainer } from '@/components/shared/Toast';
 import { TeamPanel } from '@/components/shared/TeamPanel';
+import { TaskPanel } from '@/components/shared/TaskPanel';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 function AppInner() {
@@ -21,6 +22,7 @@ function AppInner() {
       </Routes>
       <ToastContainer />
       <TeamPanel />
+      <TaskPanel />
     </>
   );
 }
