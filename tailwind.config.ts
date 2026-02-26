@@ -6,13 +6,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: { DEFAULT: '#0D0D12', subtle: '#111118' },
+        canvas: {
+          DEFAULT: 'rgb(var(--canvas) / <alpha-value>)',
+          subtle: 'rgb(var(--canvas-subtle) / <alpha-value>)',
+        },
         surface: {
-          0: '#0D0D12',
-          1: '#14141C',
-          2: '#1C1C28',
-          3: '#242436',
-          4: '#2E2E45',
+          0: 'rgb(var(--surface-0) / <alpha-value>)',
+          1: 'rgb(var(--surface-1) / <alpha-value>)',
+          2: 'rgb(var(--surface-2) / <alpha-value>)',
+          3: 'rgb(var(--surface-3) / <alpha-value>)',
+          4: 'rgb(var(--surface-4) / <alpha-value>)',
         },
         accent: {
           violet: '#8B5CF6',
@@ -32,13 +35,13 @@ export default {
           'amber-dark': '#D97706',
         },
         ink: {
-          primary: '#F1F1F8',
-          secondary: '#9898B0',
-          muted: '#5A5A72',
+          primary: 'rgb(var(--ink-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--ink-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--ink-muted) / <alpha-value>)',
         },
         line: {
-          DEFAULT: '#2E2E45',
-          subtle: '#242436',
+          DEFAULT: 'rgb(var(--line) / <alpha-value>)',
+          subtle: 'rgb(var(--line-subtle) / <alpha-value>)',
           accent: '#8B5CF6',
         },
         status: {

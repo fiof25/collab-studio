@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Theme tokens (dark default) ─────────────────────────────────────────── */
+:root {
+  --canvas:        13 13 18;
+  --canvas-subtle: 17 17 24;
+  --surface-0:     13 13 18;
+  --surface-1:     20 20 28;
+  --surface-2:     28 28 40;
+  --surface-3:     36 36 54;
+  --surface-4:     46 46 69;
+  --ink-primary:   241 241 248;
+  --ink-secondary: 152 152 176;
+  --ink-muted:     90 90 114;
+  --line:          46 46 69;
+  --line-subtle:   36 36 54;
+  --edge-color:    rgba(255, 255, 255, 0.14);
+}
+
+/* ─── Light mode overrides ────────────────────────────────────────────────── */
+html.light {
+  --canvas:        247 247 252;
+  --canvas-subtle: 238 238 248;
+  --surface-0:     247 247 252;
+  --surface-1:     255 255 255;
+  --surface-2:     242 242 250;
+  --surface-3:     232 232 244;
+  --surface-4:     220 220 238;
+  --ink-primary:   14 14 26;
+  --ink-secondary: 58 58 82;
+  --ink-muted:     120 120 160;
+  --line:          224 224 238;
+  --line-subtle:   234 234 246;
+  --edge-color:    rgba(0, 0, 0, 0.2);
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -9,8 +43,8 @@
 
   html, body, #root {
     height: 100%;
-    background-color: #0D0D12;
-    color: #F1F1F8;
+    background-color: rgb(var(--canvas));
+    color: rgb(var(--ink-primary));
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -22,18 +56,18 @@
   }
 
   .react-flow__controls {
-    background: #14141C;
-    border: 1px solid #2E2E45;
+    background: rgb(var(--surface-1));
+    border: 1px solid rgb(var(--line));
     border-radius: 0.75rem;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   }
 
   .react-flow__controls-button {
-    background: #14141C;
+    background: rgb(var(--surface-1));
     border: none;
-    border-bottom: 1px solid #2E2E45;
-    color: #9898B0;
+    border-bottom: 1px solid rgb(var(--line));
+    color: rgb(var(--ink-muted));
     width: 32px;
     height: 32px;
     display: flex;
@@ -46,8 +80,8 @@
   }
 
   .react-flow__controls-button:hover {
-    background: #1C1C28;
-    color: #F1F1F8;
+    background: rgb(var(--surface-2));
+    color: rgb(var(--ink-primary));
   }
 
   .react-flow__controls-button svg {
@@ -57,8 +91,8 @@
   }
 
   .react-flow__minimap {
-    background: #14141C;
-    border: 1px solid #2E2E45;
+    background: rgb(var(--surface-1));
+    border: 1px solid rgb(var(--line));
     border-radius: 0.75rem;
     overflow: hidden;
   }
@@ -72,20 +106,20 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #2E2E45;
+    background: rgb(var(--line));
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #5A5A72;
+    background: rgb(var(--ink-muted));
   }
 }
 
 @layer components {
   .glass {
-    background: rgba(20, 20, 28, 0.80);
+    background: rgb(var(--surface-1) / 0.80);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(46, 46, 69, 0.7);
+    border: 1px solid rgb(var(--line) / 0.7);
   }
 
   .gradient-text {

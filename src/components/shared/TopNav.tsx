@@ -1,7 +1,8 @@
 import { type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GitBranch, ArrowLeft } from 'lucide-react';
+import { GitBranch, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useThemeStore } from '@/store/useThemeStore';
 
 interface TopNavProps {
   left?: ReactNode;
@@ -13,6 +14,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const project = useProjectStore((s) => s.project);
+  const { theme, toggle } = useThemeStore();
   const isCanvas = location.pathname === '/project';
 
   return (
@@ -54,7 +56,16 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         {left}
       </div>
 
-      {right && <div className="flex items-center gap-2 flex-shrink-0">{right}</div>}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={toggle}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+        {right}
+      </div>
     </header>
   );
 }

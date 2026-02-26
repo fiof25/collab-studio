@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Camera, Plus, ChevronRight } from 'lucide-react';
+import { GitBranch, Camera, Plus, ChevronRight, Sun, Moon } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import type { Collaborator } from '@/types/branch';
@@ -116,13 +117,52 @@ interface ActivityItem {
 }
 
 const ACTIVITIES: ActivityItem[] = [
-  { id: 'a1', actor: alice, verb: 'saved a snapshot on', target: 'hero-redesign', targetColor: '#06B6D4', timestamp: now - hour * 0.5 },
+  { id: 'a1', actor: alice, verb: 'saved a version on', target: 'hero-redesign', targetColor: '#06B6D4', timestamp: now - hour * 0.5 },
   { id: 'a2', actor: bob, verb: 'branched off from', target: 'dark-mode', targetColor: '#A855F7', timestamp: now - hour * 5 },
   { id: 'a3', actor: clara, verb: 'commented on', target: 'mobile-first', targetColor: '#10B981', timestamp: now - hour * 6 },
   { id: 'a4', actor: alice, verb: 'blended', target: 'dark-mode + mobile-first', targetColor: '#EC4899', timestamp: now - day * 1 },
   { id: 'a5', actor: dan, verb: 'joined', target: 'Landing Page Redesign', targetColor: '#8B5CF6', timestamp: now - day * 1.5 },
-  { id: 'a6', actor: bob, verb: 'saved a snapshot on', target: 'perf-pass', targetColor: '#F59E0B', timestamp: now - day * 2 },
+  { id: 'a6', actor: bob, verb: 'saved a version on', target: 'perf-pass', targetColor: '#F59E0B', timestamp: now - day * 2 },
 ];
+
+// ─── Contribution data (GitHub-style grid) ────────────────────────────────────
+
+const GRID_WEEKS = 26;
+const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
+
+function seededRand(seed: number): number {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+// [week][day] — week 0 is oldest, day 0 is Monday
+const CONTRIB_GRID: number[][] = Array.from({ length: GRID_WEEKS }, (_, w) =>
+  Array.from({ length: 7 }, (_, d) => {
+    const isWeekend = d >= 5;
+    const recency = w / GRID_WEEKS;
+    const r = seededRand(w * 7 + d);
+    if (isWeekend) return r < 0.18 ? 1 : 0;
+    const adj = r * (0.35 + recency * 0.65);
+    return adj < 0.08 ? 0 : adj < 0.28 ? 1 : adj < 0.52 ? 2 : adj < 0.74 ? 3 : 4;
+  })
+);
+
+const TOTAL_CONTRIBS = CONTRIB_GRID.flat().filter(v => v > 0).length;
+
+function getMonthLabels(weeks: number): string[] {
+  const labels: string[] = new Array(weeks).fill('');
+  const today = new Date();
+  let lastMonth = -1;
+  for (let i = 0; i < weeks; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (weeks - 1 - i) * 7);
+    const m = d.getMonth();
+    if (m !== lastMonth) { labels[i] = d.toLocaleString('default', { month: 'short' }); lastMonth = m; }
+  }
+  return labels;
+}
+
+const MONTH_LABELS = getMonthLabels(GRID_WEEKS);
 
 // ─── Constants for iframe scaling ─────────────────────────────────────────────
 
@@ -210,6 +250,7 @@ function ProjectCard({
 export function HomePage() {
   const navigate = useNavigate();
   const project = useProjectStore((s) => s.project);
+  const { theme, toggle } = useThemeStore();
   const realPreview =
     project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
 
@@ -237,6 +278,13 @@ export function HomePage() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggle}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
           <Avatar collaborator={alice} size="sm" />
         </div>
       </header>
@@ -270,7 +318,7 @@ export function HomePage() {
               {[
                 { label: 'Projects', value: '4' },
                 { label: 'Branches', value: '24' },
-                { label: 'Snapshots', value: '18' },
+                { label: 'Versions', value: '18' },
                 { label: 'Comments', value: '36' },
               ].map(({ label, value }) => (
                 <div key={label}>
@@ -322,6 +370,66 @@ export function HomePage() {
                 {MOCK_PROJECTS.map((p) => (
                   <ProjectCard key={p.id} project={p} realPreview={realPreview} />
                 ))}
+              </div>
+            </section>
+
+            {/* Contributions */}
+            <section>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="text-sm font-semibold text-ink-primary">Contributions</h3>
+                <span className="text-2xs text-ink-muted">{TOTAL_CONTRIBS} contributions in the last 6 months</span>
+              </div>
+              <div className="border border-line rounded-xl p-4 bg-surface-1 overflow-x-auto">
+                {/* Month labels */}
+                <div className="mb-1.5" style={{ paddingLeft: 28 }}>
+                  <div className="flex gap-[3px]">
+                    {MONTH_LABELS.map((label, i) => (
+                      <div key={i} className="text-2xs text-ink-muted flex-shrink-0" style={{ width: 11 }}>{label}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grid */}
+                <div className="flex gap-1.5">
+                  {/* Day labels */}
+                  <div className="flex flex-col gap-[3px] flex-shrink-0" style={{ width: 24 }}>
+                    {DAY_LABELS.map((label, i) => (
+                      <div key={i} className="text-2xs text-ink-muted flex items-center justify-end" style={{ height: 11 }}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Week columns — fixed 11px cells like GitHub */}
+                  <div className="flex gap-[3px]">
+                    {CONTRIB_GRID.map((week, w) => (
+                      <div key={w} className="flex flex-col gap-[3px]">
+                        {week.map((intensity, d) => (
+                          <div
+                            key={d}
+                            className="rounded-sm flex-shrink-0"
+                            title={intensity > 0 ? `${intensity} contribution${intensity > 1 ? 's' : ''}` : 'No contributions'}
+                            style={{
+                              width: 11,
+                              height: 11,
+                              background: '#8B5CF6',
+                              opacity: intensity === 0 ? 0.07 : 0.18 + intensity * 0.2,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center gap-1.5 mt-3 justify-end">
+                  <span className="text-2xs text-ink-muted">Less</span>
+                  {[0.07, 0.28, 0.48, 0.68, 0.88].map((op, i) => (
+                    <div key={i} className="rounded-sm flex-shrink-0 bg-accent-violet" style={{ width: 11, height: 11, opacity: op }} />
+                  ))}
+                  <span className="text-2xs text-ink-muted">More</span>
+                </div>
               </div>
             </section>
 

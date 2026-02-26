@@ -167,7 +167,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
             className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-1 border border-line text-2xs text-ink-muted hover:text-ink-primary hover:border-line-accent transition-colors"
           >
             <Plus size={10} />
-            New version
+            Branch off
           </button>
         </div>
       </motion.div>

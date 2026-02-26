@@ -28,7 +28,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
 
   const handleCheckpoint = () => {
     if (!branch) return;
-    const label = `Snapshot ${branch.checkpoints.length + 1}`;
+    const label = `Version ${branch.checkpoints.length + 1}`;
     const newCheckpoint = {
       id: `ckpt_${nanoid(6)}`,
       branchId,
@@ -55,8 +55,8 @@ export function BranchActions({ branchId }: BranchActionsProps) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <Button variant="ghost" size="sm" icon={<Camera size={13} />} onClick={handleCheckpoint} title="Save snapshot">
-        Snapshot
+      <Button variant="ghost" size="sm" icon={<Camera size={13} />} onClick={handleCheckpoint} title="Save version">
+        Save version
       </Button>
       <Button variant="ghost" size="sm" icon={<MessageCircle size={13} />} onClick={handleComments}>
         Comments
@@ -71,7 +71,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
       {!isRoot && (
         <button
           onClick={handleDelete}
-          title={confirmingDelete ? 'Click again to confirm' : 'Delete this version'}
+          title={confirmingDelete ? 'Click again to confirm' : 'Delete this branch'}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm font-medium transition-all border ${
             confirmingDelete
               ? 'border-red-500/60 text-red-400 bg-red-500/10'

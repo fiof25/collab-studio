@@ -109,7 +109,7 @@ export function BranchPreviewPopup() {
               <div className="flex items-center gap-3 text-2xs text-ink-muted">
                 <span className="flex items-center gap-1">
                   <Camera size={10} />
-                  {branch.checkpoints.length} snapshots
+                  {branch.checkpoints.length} versions
                 </span>
                 <span>Updated {formatRelativeTime(branch.updatedAt)}</span>
               </div>
@@ -164,14 +164,14 @@ export function BranchPreviewPopup() {
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
               >
                 <Plus size={12} />
-                New version
+                Branch off
               </button>
               {!branch.parentId ? null : (
                 <>
                   <div className="w-px bg-line" />
                   <button
                     onClick={handleDelete}
-                    title={confirmingDelete ? 'Click again to confirm' : 'Delete this version'}
+                    title={confirmingDelete ? 'Click again to confirm' : 'Delete this branch'}
                     className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs transition-colors ${
                       confirmingDelete
                         ? 'text-red-400 bg-red-500/10'

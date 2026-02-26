@@ -31,7 +31,7 @@ export function CanvasPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-violet hover:bg-accent-violet-dark text-white text-xs font-medium transition-colors"
             >
               <Plus size={13} />
-              New version
+              New branch
             </button>
           </div>
         }
