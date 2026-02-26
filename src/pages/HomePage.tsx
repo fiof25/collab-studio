@@ -251,7 +251,7 @@ export function HomePage() {
             <div className="flex flex-col gap-3">
               <div className="w-[72px] h-[72px] rounded-full overflow-hidden bg-surface-3 ring-2 ring-line flex-shrink-0">
                 <img
-                  src={alice.avatarUrl}
+                  src="/catpfp.jpg"
                   alt="Alice Kim"
                   className="w-full h-full object-cover"
                 />

@@ -28,7 +28,10 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         )}
 
         {/* Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+        >
           <div className="w-6 h-6 rounded-lg bg-accent-violet flex items-center justify-center">
             <GitBranch size={13} className="text-white" />
           </div>
@@ -37,7 +40,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
               Collab Studio
             </span>
           )}
-        </div>
+        </button>
 
         {project && isCanvas && (
           <div className="flex items-center gap-2 min-w-0">
