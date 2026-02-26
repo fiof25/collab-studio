@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { GitBranch, Camera, Plus, ChevronRight, Sun, Moon } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useUIStore } from '@/store/useUIStore';
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import type { Collaborator } from '@/types/branch';
@@ -251,6 +252,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const project = useProjectStore((s) => s.project);
   const { theme, toggle } = useThemeStore();
+  const { toggleTeamPanel } = useUIStore();
   const realPreview =
     project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
 
@@ -272,7 +274,10 @@ export function HomePage() {
           <button className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors">
             Activity
           </button>
-          <button className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors">
+          <button
+            onClick={toggleTeamPanel}
+            className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+          >
             Team
           </button>
         </nav>

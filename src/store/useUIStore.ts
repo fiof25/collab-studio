@@ -11,6 +11,8 @@ interface UIStore extends UIState {
   setChatWidth: (pct: number) => void;
   pushToast: (payload: Omit<ToastPayload, 'id'>) => void;
   dismissToast: (id: string) => void;
+  teamPanelOpen: boolean;
+  toggleTeamPanel: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -25,6 +27,7 @@ export const useUIStore = create<UIStore>((set) => ({
     previewVisible: true,
   },
   toasts: [],
+  teamPanelOpen: false,
 
   openModal: (type, context = {}) =>
     set({ activeModal: type, modalContext: context }),
@@ -51,4 +54,6 @@ export const useUIStore = create<UIStore>((set) => ({
 
   dismissToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  toggleTeamPanel: () => set((s) => ({ teamPanelOpen: !s.teamPanelOpen })),
 }));
