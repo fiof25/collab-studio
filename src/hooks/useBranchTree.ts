@@ -45,7 +45,7 @@ export function useBranchTree(): {
             childBranchId: branch.id,
             parentColor: parent?.color ?? '#8B5CF6',
             childColor: branch.color,
-            isActive: branch.status === 'active',
+            isActive: branch.status === 'active' || branch.status === 'merging',
           },
         };
       });

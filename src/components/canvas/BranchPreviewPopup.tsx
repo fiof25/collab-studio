@@ -8,6 +8,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { Badge } from '@/components/shared/Badge';
 import { AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
+import { toDisplayName } from '@/utils/branchUtils';
 
 export function BranchPreviewPopup() {
   const navigate = useNavigate();
@@ -78,8 +79,8 @@ export function BranchPreviewPopup() {
             {/* Info section */}
             <div className="p-3 pb-2">
               <div className="flex items-center justify-between gap-2 mb-1.5">
-                <h3 className="text-sm font-semibold text-ink-primary font-mono truncate">
-                  {branch.name}
+                <h3 className="text-sm font-semibold text-ink-primary truncate">
+                  {toDisplayName(branch.name)}
                 </h3>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Badge status={branch.status} />

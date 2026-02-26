@@ -1,5 +1,11 @@
 import type { Branch } from '@/types/branch';
 
+/** Converts a slug like "hero-redesign" to "Hero redesign" for display. */
+export function toDisplayName(slug: string): string {
+  const spaced = slug.replace(/-/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 export function getAncestorChain(branches: Branch[], branchId: string): Branch[] {
   const chain: Branch[] = [];
   let current = branches.find((b) => b.id === branchId);

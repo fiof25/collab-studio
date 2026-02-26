@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
+import { toDisplayName } from '@/utils/branchUtils';
 
 interface BranchBreadcrumbProps {
   branchId: string;
@@ -77,10 +78,10 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                     style={{ background: branch.color }}
                   />
                   <span
-                    className="text-sm font-semibold font-mono truncate max-w-[160px]"
+                    className="text-sm font-semibold truncate max-w-[160px]"
                     style={{ color: branch.color }}
                   >
-                    {branch.name}
+                    {toDisplayName(branch.name)}
                   </span>
                   <Pencil
                     size={10}
@@ -91,13 +92,13 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
             ) : (
               <button
                 onClick={() => navigate(`/branch/${branch.id}`)}
-                className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink-secondary transition-colors font-mono truncate max-w-[120px]"
+                className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink-secondary transition-colors truncate max-w-[120px]"
               >
                 <div
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0 opacity-60"
                   style={{ background: branch.color }}
                 />
-                {branch.name}
+                {toDisplayName(branch.name)}
               </button>
             )}
           </div>
