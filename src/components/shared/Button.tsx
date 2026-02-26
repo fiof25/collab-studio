@@ -14,7 +14,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<Variant, string> = {
   primary:
-    'bg-gradient-to-br from-accent-violet to-accent-cyan text-white hover:opacity-90 shadow-glow-violet/20',
+    'bg-accent-violet text-white hover:bg-accent-violet-dark',
   ghost:
     'bg-transparent text-ink-secondary border border-line hover:border-line-accent hover:text-ink-primary',
   danger:
@@ -22,7 +22,7 @@ const variantStyles: Record<Variant, string> = {
   outline:
     'bg-transparent text-ink-primary border border-line hover:bg-surface-2',
   blend:
-    'bg-gradient-to-br from-accent-pink via-accent-violet to-accent-cyan text-white hover:opacity-90',
+    'bg-accent-pink text-white hover:bg-accent-pink-dark',
 };
 
 const sizeStyles: Record<Size, string> = {

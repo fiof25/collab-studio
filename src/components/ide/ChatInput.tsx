@@ -95,7 +95,7 @@ export function ChatInput({ branchId }: ChatInputProps) {
           className={clsx(
             'w-8 h-8 rounded-xl flex items-center justify-center transition-all flex-shrink-0',
             value.trim()
-              ? 'bg-gradient-to-br from-accent-violet to-accent-cyan text-white hover:opacity-90'
+              ? 'bg-accent-violet text-white hover:bg-accent-violet-dark'
               : 'bg-surface-3 text-ink-muted cursor-not-allowed'
           )}
         >

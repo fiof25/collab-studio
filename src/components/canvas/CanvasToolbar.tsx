@@ -66,9 +66,9 @@ function ToolButton({
       onClick={onClick}
       className={
         accent
-          ? 'w-8 h-8 rounded-xl flex items-center justify-center transition-all text-white bg-gradient-to-br from-accent-violet to-accent-cyan hover:opacity-90'
+          ? 'w-8 h-8 rounded-xl flex items-center justify-center transition-all text-white bg-accent-violet hover:bg-accent-violet-dark'
           : blend
-          ? 'w-8 h-8 rounded-xl flex items-center justify-center transition-all text-white bg-gradient-to-br from-accent-pink via-accent-violet to-accent-cyan hover:opacity-90'
+          ? 'w-8 h-8 rounded-xl flex items-center justify-center transition-all text-white bg-accent-pink hover:bg-accent-pink-dark'
           : 'w-8 h-8 rounded-xl flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-3 transition-all'
       }
     >

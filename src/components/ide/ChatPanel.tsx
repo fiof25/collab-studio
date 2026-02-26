@@ -53,7 +53,7 @@ export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-12">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-violet to-accent-cyan flex items-center justify-center">
+      <div className="w-12 h-12 rounded-2xl bg-surface-3 flex items-center justify-center">
         <Bot size={22} className="text-white" />
       </div>
       <div>
@@ -69,7 +69,7 @@ function EmptyState() {
 function ThinkingIndicator() {
   return (
     <div className="flex gap-2.5 justify-start">
-      <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-accent-violet to-accent-cyan flex items-center justify-center flex-shrink-0">
+      <div className="w-7 h-7 rounded-xl bg-surface-3 flex items-center justify-center flex-shrink-0">
         <Bot size={13} className="text-white" />
       </div>
       <div className="bg-surface-2 border border-line rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">

@@ -134,12 +134,9 @@ export function MergeModal({ variant }: MergeModalProps) {
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-px"
-            style={{
-              background: 'linear-gradient(135deg, #EC489980, #8B5CF680, #06B6D480)',
-            }}
+            className="rounded-2xl border border-line bg-surface-2 p-4"
           >
-            <div className="rounded-2xl bg-surface-2 p-4">
+            <div>
               <div className="flex items-center gap-2 mb-3">
                 <Merge size={14} className="text-accent-pink" />
                 <span className="text-xs font-semibold text-ink-secondary">Blend result</span>

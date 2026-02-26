@@ -29,7 +29,6 @@ export function useBranchTree(): {
         updatedAt: branch.updatedAt,
         isRoot: branch.id === rootBranchId,
       },
-      draggable: false,
     }));
 
     const edges: CanvasBranchEdge[] = project.branches

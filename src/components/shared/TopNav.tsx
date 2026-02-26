@@ -13,14 +13,14 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const project = useProjectStore((s) => s.project);
-  const isCanvas = location.pathname === '/';
+  const isCanvas = location.pathname === '/project';
 
   return (
     <header className="h-12 flex items-center justify-between px-4 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
       <div className="flex items-center gap-3 min-w-0">
         {showBack && !isCanvas && (
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/project')}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors flex-shrink-0"
           >
             <ArrowLeft size={16} />
@@ -29,12 +29,12 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
 
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-accent-violet to-accent-cyan flex items-center justify-center">
+          <div className="w-6 h-6 rounded-lg bg-accent-violet flex items-center justify-center">
             <GitBranch size={13} className="text-white" />
           </div>
           {isCanvas && (
             <span className="text-sm font-semibold text-ink-primary hidden sm:block">
-              collab.studio
+              Collab Studio
             </span>
           )}
         </div>

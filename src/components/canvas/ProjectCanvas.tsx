@@ -5,7 +5,9 @@ import {
   BackgroundVariant,
   MiniMap,
   useReactFlow,
+  useNodesState,
   ReactFlowProvider,
+  type Node,
   type OnMoveEnd,
   type NodeTypes,
   type EdgeTypes,
@@ -13,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useBranchTree } from '@/hooks/useBranchTree';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectStore } from '@/store/useProjectStore';
 import { BranchNode } from './BranchNode';
 import { BranchEdge } from './BranchEdge';
 import { CanvasToolbar } from './CanvasToolbar';
@@ -22,9 +25,24 @@ const nodeTypes: NodeTypes = { branchNode: BranchNode as NodeTypes[string] };
 const edgeTypes: EdgeTypes = { branchEdge: BranchEdge as EdgeTypes[string] };
 
 function FlowInner() {
-  const { nodes, edges } = useBranchTree();
+  const { nodes: storeNodes, edges } = useBranchTree();
+  const updateBranch = useProjectStore((s) => s.updateBranch);
   const { fitViewTrigger, setViewport } = useCanvasStore();
   const { fitView } = useReactFlow();
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
+
+  // Sync store → React Flow local state when branches are added/removed/updated.
+  // Preserve positions already set by dragging so they don't snap back.
+  useEffect(() => {
+    setNodes((prev) => {
+      const posMap = new Map(prev.map((n) => [n.id, n.position]));
+      return storeNodes.map((n) => ({
+        ...n,
+        position: posMap.get(n.id) ?? n.position,
+      }));
+    });
+  }, [storeNodes, setNodes]);
 
   useEffect(() => {
     if (fitViewTrigger > 0) {
@@ -45,6 +63,14 @@ function FlowInner() {
     [setViewport]
   );
 
+  // Persist dragged position to the store so it survives re-renders
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      updateBranch(node.id, { position: node.position });
+    },
+    [updateBranch]
+  );
+
   return (
     <div className="relative w-full h-full">
       <ReactFlow
@@ -52,11 +78,13 @@ function FlowInner() {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onNodesChange={onNodesChange}
+        onNodeDragStop={handleNodeDragStop}
         onMoveEnd={handleMoveEnd}
         fitView={false}
         minZoom={0.2}
         maxZoom={2}
-        nodesDraggable={false}
+        nodesDraggable
         nodesConnectable={false}
         elementsSelectable={false}
         panOnScroll

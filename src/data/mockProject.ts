@@ -380,9 +380,9 @@ export const branches: Branch[] = [
   {
     id: 'branch_perf',
     name: 'perf-pass',
-    description: 'Lazy loading, image optimization, and Core Web Vitals improvements. Archived after merge.',
+    description: 'Lazy loading, image optimization, and Core Web Vitals improvements.',
     parentId: 'branch_hero',
-    status: 'archived',
+    status: 'active',
     color: '#F59E0B',
     createdAt: now - day * 3,
     updatedAt: now - day * 1,

@@ -1,18 +1,54 @@
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, Camera, MessageCircle } from 'lucide-react';
+import { Tag, Camera, MessageCircle, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useUIStore } from '@/store/useUIStore';
 import { Badge } from '@/components/shared/Badge';
 import { AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
-import { hexToRgba } from '@/utils/colorUtils';
 
 export function BranchPreviewPopup() {
-  const { previewPopupBranchId, previewPopupAnchor } = useCanvasStore();
+  const navigate = useNavigate();
+  const { previewPopupBranchId, previewPopupAnchor, closePreviewPopup, cancelClosePreviewPopup, scheduleClosePreviewPopup } = useCanvasStore();
   const getBranchById = useProjectStore((s) => s.getBranchById);
+  const createBranch = useProjectStore((s) => s.createBranch);
+  const getChildBranches = useProjectStore((s) => s.getChildBranches);
+  const deleteBranch = useProjectStore((s) => s.deleteBranch);
+  const pushToast = useUIStore((s) => s.pushToast);
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const branch = previewPopupBranchId ? getBranchById(previewPopupBranchId) : null;
   const latestComments = branch?.comments.slice(-2) ?? [];
+
+  const handleStartNewVersion = () => {
+    if (!branch) return;
+    const siblings = getChildBranches(branch.id);
+    const name = `v${siblings.length + 1}`;
+    const newBranch = createBranch(branch.id, name, `New version from ${branch.name}`);
+    closePreviewPopup();
+    pushToast({ type: 'success', message: `"${name}" created — click the name to rename it` });
+    navigate(`/branch/${newBranch.id}`);
+  };
+
+  const handleDelete = () => {
+    if (!branch) return;
+    const isRoot = !branch.parentId;
+    if (isRoot) return;
+    if (confirmingDelete) {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      const name = branch.name;
+      deleteBranch(branch.id);
+      closePreviewPopup();
+      pushToast({ type: 'success', message: `"${name}" deleted` });
+    } else {
+      setConfirmingDelete(true);
+      confirmTimer.current = setTimeout(() => setConfirmingDelete(false), 3000);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -30,15 +66,14 @@ export function BranchPreviewPopup() {
             width: 300,
           }}
         >
+          {/* pointer-events-auto so buttons work; mouse enter/leave keeps popup alive */}
           <div
-            className="rounded-2xl overflow-hidden shadow-float border"
-            style={{ background: '#14141C', borderColor: `${branch.color}40` }}
+            className="rounded-xl overflow-hidden border border-line bg-surface-1 pointer-events-auto"
+            onMouseEnter={cancelClosePreviewPopup}
+            onMouseLeave={scheduleClosePreviewPopup}
           >
-            {/* Color accent bar */}
-            <div
-              className="h-1 w-full"
-              style={{ background: `linear-gradient(90deg, ${branch.color}, ${branch.color}50)` }}
-            />
+            {/* Solid color top accent */}
+            <div className="h-0.5 w-full" style={{ background: branch.color }} />
 
             {/* Info section */}
             <div className="p-3 pb-2">
@@ -121,6 +156,34 @@ export function BranchPreviewPopup() {
                 </div>
               </>
             )}
+
+            {/* Footer actions */}
+            <div className="border-t border-line flex">
+              <button
+                onClick={handleStartNewVersion}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+              >
+                <Plus size={12} />
+                New version
+              </button>
+              {!branch.parentId ? null : (
+                <>
+                  <div className="w-px bg-line" />
+                  <button
+                    onClick={handleDelete}
+                    title={confirmingDelete ? 'Click again to confirm' : 'Delete this version'}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs transition-colors ${
+                      confirmingDelete
+                        ? 'text-red-400 bg-red-500/10'
+                        : 'text-ink-muted hover:text-red-400 hover:bg-surface-2'
+                    }`}
+                  >
+                    <Trash2 size={12} />
+                    {confirmingDelete ? 'Sure?' : ''}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </motion.div>
       )}

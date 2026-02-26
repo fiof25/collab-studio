@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
 import { mockProject } from '@/data/mockProject';
+import { HomePage } from '@/pages/HomePage';
 import { CanvasPage } from '@/pages/CanvasPage';
 import { BranchPage } from '@/pages/BranchPage';
 import { ToastContainer } from '@/components/shared/Toast';
@@ -12,7 +13,8 @@ function AppInner() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<CanvasPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/project" element={<CanvasPage />} />
         <Route path="/branch/:branchId" element={<BranchPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
