@@ -2,7 +2,7 @@ import { memo, useRef, useEffect, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Pencil } from 'lucide-react';
+import { Camera, Plus, Pencil, Merge } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AvatarGroup } from '@/components/shared/Avatar';
 import { useCanvasStore } from '@/store/useCanvasStore';
@@ -35,6 +35,8 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
   const openPreviewPopup = useCanvasStore((s) => s.openPreviewPopup);
   const closePreviewPopup = useCanvasStore((s) => s.closePreviewPopup);
   const scheduleClosePreviewPopup = useCanvasStore((s) => s.scheduleClosePreviewPopup);
+  const blendTargetId = useCanvasStore((s) => s.blendTargetId);
+  const isBlendTarget = blendTargetId === data.branchId;
   const createBranch = useProjectStore((s) => s.createBranch);
   const getChildBranches = useProjectStore((s) => s.getChildBranches);
   const pushToast = useUIStore((s) => s.pushToast);
@@ -126,8 +128,9 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
         {/* Card */}
         <div
           className={clsx(
-            'rounded-xl overflow-hidden bg-surface-1 border border-line flex flex-col',
-            isArchived && 'opacity-50'
+            'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-shadow duration-150',
+            isArchived && 'opacity-50',
+            isBlendTarget ? 'border-accent-pink shadow-glow-pink' : 'border-line'
           )}
         >
           {/* Solid color top accent */}
@@ -210,6 +213,16 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
             </div>
           </div>
         </div>
+
+        {/* Blend target overlay */}
+        {isBlendTarget && (
+          <div className="absolute inset-0 rounded-xl flex items-center justify-center pointer-events-none z-10">
+            <div className="px-3 py-1.5 rounded-full bg-accent-pink text-white text-xs font-semibold flex items-center gap-1.5">
+              <Merge size={11} />
+              Drop to blend
+            </div>
+          </div>
+        )}
 
         {/* Hover chip — floats below the card on hover */}
         <div

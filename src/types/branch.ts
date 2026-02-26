@@ -41,6 +41,7 @@ export interface Branch {
   tags: string[];
   position: { x: number; y: number };
   comments: Comment[];
+  mergedIntoId?: string;
 }
 
 export interface Project {

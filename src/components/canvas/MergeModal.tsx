@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Merge, ArrowRight, GitBranch } from 'lucide-react';
+import { Merge, ArrowRight, GitBranch, Check } from 'lucide-react';
 import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/shared/Button';
-import { Badge } from '@/components/shared/Badge';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
-import { hexToRgba } from '@/utils/colorUtils';
+import { toDisplayName } from '@/utils/branchUtils';
+import type { Branch } from '@/types/branch';
 
 interface MergeModalProps {
   variant: 'merge' | 'newBranch';
@@ -17,34 +17,92 @@ export function MergeModal({ variant }: MergeModalProps) {
   const { project, mergeBranches, createBranch } = useProjectStore();
   const pushToast = useUIStore((s) => s.pushToast);
 
-  const [sourceId, setSourceId] = useState(
-    (modalContext?.sourceId as string) ?? ''
-  );
-  const [targetId, setTargetId] = useState(
-    (modalContext?.targetId as string) ?? (project?.rootBranchId ?? '')
-  );
+  // newBranch state
   const [parentId, setParentId] = useState(
     (modalContext?.parentId as string) ?? (project?.rootBranchId ?? '')
   );
   const [newName, setNewName] = useState('');
+
+  // merge state — pre-filled when triggered by drag, otherwise pick manually
+  const contextSourceId = modalContext?.sourceId as string | undefined;
+  const contextTargetId = modalContext?.targetId as string | undefined;
+  const [sourceId, setSourceId] = useState(contextSourceId ?? '');
+  const [targetId, setTargetId] = useState(contextTargetId ?? '');
+
+  // Feature selection state
+  const [sourceSelected, setSourceSelected] = useState<Set<string>>(new Set());
+  const [targetSelected, setTargetSelected] = useState<Set<string>>(new Set());
+  const [sourceNotes, setSourceNotes] = useState('');
+  const [targetNotes, setTargetNotes] = useState('');
+
   const [loading, setLoading] = useState(false);
+
+  // Sync context when modal opens
+  useEffect(() => {
+    if (activeModal === 'merge') {
+      setSourceId(contextSourceId ?? '');
+      setTargetId(contextTargetId ?? '');
+      setSourceSelected(new Set());
+      setTargetSelected(new Set());
+      setSourceNotes('');
+      setTargetNotes('');
+    }
+    if (activeModal === 'newBranch') {
+      setParentId((modalContext?.parentId as string) ?? (project?.rootBranchId ?? ''));
+      setNewName('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModal]);
 
   const open = variant === 'merge' ? activeModal === 'merge' : activeModal === 'newBranch';
   const branches = project?.branches ?? [];
+  const activeBranches = branches.filter((b) => b.status === 'active' || b.status === 'merging');
 
   const sourceBranch = branches.find((b) => b.id === sourceId);
   const targetBranch = branches.find((b) => b.id === targetId);
   const parentBranch = branches.find((b) => b.id === parentId);
 
+  const isDragTriggered = !!(contextSourceId && contextTargetId);
+
+  const toggleSource = (id: string) =>
+    setSourceSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const toggleTarget = (id: string) =>
+    setTargetSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   const handleBlend = () => {
-    if (!sourceId || !targetId || !newName.trim()) return;
+    if (!sourceId || !targetId) return;
     setLoading(true);
     setTimeout(() => {
-      mergeBranches(sourceId, targetId, newName.trim());
-      pushToast({ type: 'success', message: `Blended into "${newName.trim()}"` });
+      const result = mergeBranches(sourceId, targetId);
+      if (result) {
+        const sourceFeats = [...sourceSelected]
+          .map((id) => sourceBranch?.checkpoints.find((c) => c.id === id)?.label)
+          .filter(Boolean) as string[];
+        const targetFeats = [...targetSelected]
+          .map((id) => targetBranch?.checkpoints.find((c) => c.id === id)?.label)
+          .filter(Boolean) as string[];
+        const parts = [
+          sourceFeats.length ? `Brought in: ${sourceFeats.join(', ')}` : '',
+          targetFeats.length ? `Kept: ${targetFeats.join(', ')}` : '',
+        ].filter(Boolean);
+        const detail = parts.length ? ` — ${parts.join(' · ')}` : '';
+        pushToast({
+          type: 'success',
+          message: `"${toDisplayName(sourceBranch?.name ?? '')}" blended into "${toDisplayName(result.name)}"${detail}`,
+        });
+      }
       closeModal();
       setLoading(false);
-    }, 1200);
+    }, 900);
   };
 
   const handleCreate = () => {
@@ -52,11 +110,13 @@ export function MergeModal({ variant }: MergeModalProps) {
     setLoading(true);
     setTimeout(() => {
       createBranch(parentId, newName.trim(), `Branched off from ${parentBranch?.name}`);
-      pushToast({ type: 'success', message: `Created branch "${newName.trim()}"` });
+      pushToast({ type: 'success', message: `"${newName.trim()}" created` });
       closeModal();
       setLoading(false);
     }, 600);
   };
+
+  // ── New Branch variant ──────────────────────────────────────────────────────
 
   if (variant === 'newBranch') {
     return (
@@ -71,7 +131,7 @@ export function MergeModal({ variant }: MergeModalProps) {
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name}
+                  {toDisplayName(b.name)}
                 </option>
               ))}
             </select>
@@ -79,8 +139,8 @@ export function MergeModal({ variant }: MergeModalProps) {
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Branch name</label>
             <input
-              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet font-mono"
-              placeholder="my-new-feature"
+              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
+              placeholder="my-new-branch"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -88,9 +148,7 @@ export function MergeModal({ variant }: MergeModalProps) {
             />
           </div>
           <div className="flex gap-2 pt-1">
-            <Button variant="ghost" onClick={closeModal} className="flex-1">
-              Cancel
-            </Button>
+            <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
             <Button
               variant="primary"
               onClick={handleCreate}
@@ -107,69 +165,108 @@ export function MergeModal({ variant }: MergeModalProps) {
     );
   }
 
-  return (
-    <Modal open={open} onClose={closeModal} title="Blend Branches" size="md">
-      <div className="space-y-5">
-        {/* Branch selectors */}
-        <div className="flex items-center gap-3">
-          <BranchPicker
-            label="Source"
-            branches={branches.filter((b) => b.id !== targetId)}
-            value={sourceId}
-            onChange={setSourceId}
-          />
-          <div className="flex-shrink-0 text-ink-muted mt-5">
-            <ArrowRight size={18} />
-          </div>
-          <BranchPicker
-            label="Target"
-            branches={branches.filter((b) => b.id !== sourceId)}
-            value={targetId}
-            onChange={setTargetId}
-          />
-        </div>
+  // ── Blend variant ───────────────────────────────────────────────────────────
 
-        {/* Blend result preview */}
-        {sourceBranch && targetBranch && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-line bg-surface-2 p-4"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Merge size={14} className="text-accent-pink" />
-                <span className="text-xs font-semibold text-ink-secondary">Blend result</span>
-                <div
-                  className="ml-1 w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ background: sourceBranch.color }}
-                />
-                <span className="text-xs text-ink-muted">+</span>
-                <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ background: targetBranch.color }}
-                />
+  return (
+    <Modal open={open} onClose={closeModal} title="Blend branches" size="lg">
+      <div className="space-y-5">
+
+        {isDragTriggered ? (
+          /* Drag-triggered: straight to feature picker */
+          sourceBranch && targetBranch ? (
+            <FeaturePicker
+              sourceBranch={sourceBranch}
+              targetBranch={targetBranch}
+              sourceSelected={sourceSelected}
+              targetSelected={targetSelected}
+              onSourceToggle={toggleSource}
+              onTargetToggle={toggleTarget}
+              sourceNotes={sourceNotes}
+              targetNotes={targetNotes}
+              onSourceNotesChange={setSourceNotes}
+              onTargetNotesChange={setTargetNotes}
+            />
+          ) : null
+        ) : (
+          /* Toolbar-triggered: visual card pickers, then feature picker */
+          <div className="space-y-4">
+            <p className="text-xs text-ink-muted">
+              Pick the branch to absorb and the branch that survives.
+            </p>
+            <div className="flex gap-3">
+              {/* Absorbed column */}
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-red-400/70" />
+                  <span className="text-2xs font-medium text-ink-muted uppercase tracking-wide">Absorbed</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {activeBranches
+                    .filter((b) => b.id !== targetId)
+                    .map((b) => (
+                      <BranchCard
+                        key={b.id}
+                        branch={b}
+                        selected={sourceId === b.id}
+                        onClick={() => setSourceId(b.id === sourceId ? '' : b.id)}
+                      />
+                    ))}
+                </div>
               </div>
-              <input
-                className="w-full bg-surface-3 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-pink font-mono"
-                placeholder={`${sourceBranch.name}-blend`}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                autoFocus
-              />
+
+              {/* Arrow */}
+              <div className="flex items-center justify-center pt-7 flex-shrink-0">
+                <ArrowRight size={15} className="text-ink-muted" />
+              </div>
+
+              {/* Survives column */}
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-status-active" />
+                  <span className="text-2xs font-medium text-ink-muted uppercase tracking-wide">Survives</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {activeBranches
+                    .filter((b) => b.id !== sourceId)
+                    .map((b) => (
+                      <BranchCard
+                        key={b.id}
+                        branch={b}
+                        selected={targetId === b.id}
+                        onClick={() => setTargetId(b.id === targetId ? '' : b.id)}
+                      />
+                    ))}
+                </div>
+              </div>
             </div>
-          </motion.div>
+
+            {/* Feature picker appears once both branches are selected */}
+            {sourceBranch && targetBranch && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                <FeaturePicker
+                  sourceBranch={sourceBranch}
+                  targetBranch={targetBranch}
+                  sourceSelected={sourceSelected}
+                  targetSelected={targetSelected}
+                  onSourceToggle={toggleSource}
+                  onTargetToggle={toggleTarget}
+                  sourceNotes={sourceNotes}
+                  targetNotes={targetNotes}
+                  onSourceNotesChange={setSourceNotes}
+                  onTargetNotesChange={setTargetNotes}
+                />
+              </motion.div>
+            )}
+          </div>
         )}
 
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={closeModal} className="flex-1">
-            Cancel
-          </Button>
+          <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
           <Button
             variant="blend"
             onClick={handleBlend}
             loading={loading}
-            disabled={!sourceId || !targetId || !newName.trim()}
+            disabled={!sourceId || !targetId}
             className="flex-1"
             icon={<Merge size={14} />}
           >
@@ -181,46 +278,183 @@ export function MergeModal({ variant }: MergeModalProps) {
   );
 }
 
-function BranchPicker({
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+interface FeaturePickerProps {
+  sourceBranch: Branch;
+  targetBranch: Branch;
+  sourceSelected: Set<string>;
+  targetSelected: Set<string>;
+  onSourceToggle: (id: string) => void;
+  onTargetToggle: (id: string) => void;
+  sourceNotes: string;
+  targetNotes: string;
+  onSourceNotesChange: (v: string) => void;
+  onTargetNotesChange: (v: string) => void;
+}
+
+function FeaturePicker({
+  sourceBranch,
+  targetBranch,
+  sourceSelected,
+  targetSelected,
+  onSourceToggle,
+  onTargetToggle,
+  sourceNotes,
+  targetNotes,
+  onSourceNotesChange,
+  onTargetNotesChange,
+}: FeaturePickerProps) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface-2 overflow-hidden">
+      {/* Column headers */}
+      <div className="flex border-b border-line">
+        <div className="flex-1 px-4 py-2.5 flex items-center gap-2 border-r border-line">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: sourceBranch.color }} />
+          <span className="text-xs font-semibold text-ink-primary truncate">
+            {toDisplayName(sourceBranch.name)}
+          </span>
+          <span className="ml-auto text-2xs text-red-400/70 flex-shrink-0">absorbed</span>
+        </div>
+        <div className="flex-1 px-4 py-2.5 flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: targetBranch.color }} />
+          <span className="text-xs font-semibold text-ink-primary truncate">
+            {toDisplayName(targetBranch.name)}
+          </span>
+          <span className="ml-auto text-2xs text-status-active flex-shrink-0">survives</span>
+        </div>
+      </div>
+
+      {/* Sub-labels */}
+      <div className="flex border-b border-line">
+        <div className="flex-1 px-4 pt-2.5 pb-1 border-r border-line">
+          <p className="text-2xs text-ink-muted">Which features to carry over?</p>
+        </div>
+        <div className="flex-1 px-4 pt-2.5 pb-1">
+          <p className="text-2xs text-ink-muted">Which features to keep?</p>
+        </div>
+      </div>
+
+      {/* Checkpoint checklist */}
+      <div className="flex">
+        <div className="flex-1 px-3 py-2 border-r border-line space-y-0.5">
+          {sourceBranch.checkpoints.length === 0 ? (
+            <p className="text-2xs text-ink-muted italic px-1 py-1">No checkpoints</p>
+          ) : (
+            sourceBranch.checkpoints.map((ckpt) => (
+              <CheckItem
+                key={ckpt.id}
+                label={ckpt.label}
+                checked={sourceSelected.has(ckpt.id)}
+                onChange={() => onSourceToggle(ckpt.id)}
+                color={sourceBranch.color}
+              />
+            ))
+          )}
+        </div>
+        <div className="flex-1 px-3 py-2 space-y-0.5">
+          {targetBranch.checkpoints.length === 0 ? (
+            <p className="text-2xs text-ink-muted italic px-1 py-1">No checkpoints</p>
+          ) : (
+            targetBranch.checkpoints.map((ckpt) => (
+              <CheckItem
+                key={ckpt.id}
+                label={ckpt.label}
+                checked={targetSelected.has(ckpt.id)}
+                onChange={() => onTargetToggle(ckpt.id)}
+                color={targetBranch.color}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Notes row */}
+      <div className="flex border-t border-line">
+        <div className="flex-1 px-3 py-2.5 border-r border-line">
+          <textarea
+            className="w-full bg-transparent text-2xs text-ink-primary placeholder:text-ink-muted/50 resize-none outline-none leading-relaxed"
+            placeholder="Extra notes from this branch…"
+            rows={2}
+            value={sourceNotes}
+            onChange={(e) => onSourceNotesChange(e.target.value)}
+          />
+        </div>
+        <div className="flex-1 px-3 py-2.5">
+          <textarea
+            className="w-full bg-transparent text-2xs text-ink-primary placeholder:text-ink-muted/50 resize-none outline-none leading-relaxed"
+            placeholder="Extra notes from this branch…"
+            rows={2}
+            value={targetNotes}
+            onChange={(e) => onTargetNotesChange(e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheckItem({
   label,
-  branches,
-  value,
+  checked,
   onChange,
+  color,
 }: {
   label: string;
-  branches: { id: string; name: string; color: string; status: import('@/types/branch').BranchStatus }[];
-  value: string;
-  onChange: (id: string) => void;
+  checked: boolean;
+  onChange: () => void;
+  color: string;
 }) {
-  const selected = branches.find((b) => b.id === value);
   return (
-    <div className="flex-1">
-      <label className="text-xs text-ink-muted mb-1.5 block">{label}</label>
-      <div className="relative">
-        <select
-          className="w-full bg-surface-2 border border-line rounded-xl pl-8 pr-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet appearance-none"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">Select branch...</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-        {selected && (
-          <div
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full"
-            style={{ background: selected.color }}
-          />
-        )}
+    <button
+      onClick={onChange}
+      className="w-full flex items-start gap-2 px-1.5 py-1 rounded-lg hover:bg-surface-3 transition-colors text-left group"
+    >
+      <div
+        className={[
+          'flex-shrink-0 mt-0.5 w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center transition-all',
+          checked ? 'border-transparent' : 'border-line group-hover:border-line-accent',
+        ].join(' ')}
+        style={checked ? { background: color } : {}}
+      >
+        {checked && <Check size={9} className="text-white" />}
       </div>
-      {selected && (
-        <div className="mt-1.5">
-          <Badge status={selected.status} />
-        </div>
+      <span className={['text-2xs leading-snug', checked ? 'text-ink-primary' : 'text-ink-muted'].join(' ')}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function BranchCard({
+  branch,
+  selected,
+  onClick,
+}: {
+  branch: Branch;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'w-full text-left px-2.5 py-2 rounded-xl border transition-all',
+        selected
+          ? 'border-accent-pink bg-accent-pink/10'
+          : 'border-line bg-surface-2 hover:border-line-accent hover:bg-surface-3',
+      ].join(' ')}
+    >
+      <div className="flex items-center gap-2">
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: branch.color }} />
+        <span className="text-xs font-medium text-ink-primary truncate flex-1">
+          {toDisplayName(branch.name)}
+        </span>
+        {selected && <Check size={11} className="text-accent-pink flex-shrink-0" />}
+      </div>
+      {branch.description && (
+        <p className="text-2xs text-ink-muted truncate mt-0.5 pl-4">{branch.description}</p>
       )}
-    </div>
+    </button>
   );
 }

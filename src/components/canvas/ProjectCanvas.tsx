@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,6 +16,7 @@ import '@xyflow/react/dist/style.css';
 import { useBranchTree } from '@/hooks/useBranchTree';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useUIStore } from '@/store/useUIStore';
 import { BranchNode } from './BranchNode';
 import { BranchEdge } from './BranchEdge';
 import { CanvasToolbar } from './CanvasToolbar';
@@ -24,13 +25,25 @@ import { BranchPreviewPopup } from './BranchPreviewPopup';
 const nodeTypes: NodeTypes = { branchNode: BranchNode as NodeTypes[string] };
 const edgeTypes: EdgeTypes = { branchEdge: BranchEdge as EdgeTypes[string] };
 
+// Node bounding box dimensions (must match BranchNode constants)
+const NODE_W = 240;
+const NODE_H = 166; // approximate card height without hover chip
+
+function getCenter(pos: { x: number; y: number }) {
+  return { x: pos.x + NODE_W / 2, y: pos.y + NODE_H / 2 };
+}
+
 function FlowInner() {
   const { nodes: storeNodes, edges } = useBranchTree();
   const updateBranch = useProjectStore((s) => s.updateBranch);
-  const { fitViewTrigger, setViewport } = useCanvasStore();
+  const openModal = useUIStore((s) => s.openModal);
+  const { fitViewTrigger, setViewport, blendTargetId, setBlendTarget } = useCanvasStore();
   const { fitView } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
+
+  // Stores the position of the node before dragging, so we can snap it back if a blend is triggered
+  const dragOriginalPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Sync store → React Flow local state when branches are added/removed/updated.
   // Preserve positions already set by dragging so they don't snap back.
@@ -63,12 +76,46 @@ function FlowInner() {
     [setViewport]
   );
 
-  // Persist dragged position to the store so it survives re-renders
+  const handleNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    dragOriginalPosRef.current = { ...node.position };
+  }, []);
+
+  // During drag: detect if the dragged node is overlapping another node
+  const handleNodeDrag = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const dragCenter = getCenter(node.position);
+      const overlap = nodes.find((n) => {
+        if (n.id === node.id) return false;
+        const nCenter = getCenter(n.position);
+        const dist = Math.sqrt(
+          (dragCenter.x - nCenter.x) ** 2 + (dragCenter.y - nCenter.y) ** 2
+        );
+        return dist < NODE_W * 0.75;
+      });
+      setBlendTarget(overlap?.id ?? null);
+    },
+    [nodes, setBlendTarget]
+  );
+
+  // On drop: if overlapping another node, snap back and open blend confirmation
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      updateBranch(node.id, { position: node.position });
+      if (blendTargetId && blendTargetId !== node.id) {
+        // Snap dragged node back to its original position
+        const originalPos = dragOriginalPosRef.current;
+        if (originalPos) {
+          setNodes((prev) =>
+            prev.map((n) => (n.id === node.id ? { ...n, position: originalPos } : n))
+          );
+        }
+        setBlendTarget(null);
+        openModal('merge', { sourceId: node.id, targetId: blendTargetId });
+      } else {
+        setBlendTarget(null);
+        updateBranch(node.id, { position: node.position });
+      }
     },
-    [updateBranch]
+    [blendTargetId, setBlendTarget, setNodes, updateBranch, openModal]
   );
 
   return (
@@ -79,6 +126,8 @@ function FlowInner() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         onMoveEnd={handleMoveEnd}
         fitView={false}

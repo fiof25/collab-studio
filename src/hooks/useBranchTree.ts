@@ -31,7 +31,8 @@ export function useBranchTree(): {
       },
     }));
 
-    const edges: CanvasBranchEdge[] = project.branches
+    // Parent-child edges
+    const parentEdges: CanvasBranchEdge[] = project.branches
       .filter((b) => b.parentId !== null)
       .map((branch) => {
         const parent = project.branches.find((p) => p.id === branch.parentId);
@@ -50,6 +51,27 @@ export function useBranchTree(): {
         };
       });
 
-    return { nodes, edges };
+    // Merge edges — drawn from the absorbed branch toward the surviving branch
+    const mergeEdges: CanvasBranchEdge[] = project.branches
+      .filter((b) => b.status === 'merged' && b.mergedIntoId)
+      .map((branch) => {
+        const target = project.branches.find((p) => p.id === branch.mergedIntoId);
+        return {
+          id: `merge_${branch.id}_${branch.mergedIntoId}`,
+          type: 'branchEdge' as const,
+          source: branch.id,
+          target: branch.mergedIntoId!,
+          data: {
+            parentBranchId: branch.id,
+            childBranchId: branch.mergedIntoId!,
+            parentColor: branch.color,
+            childColor: target?.color ?? '#EC4899',
+            isActive: false,
+            isMergeEdge: true,
+          },
+        };
+      });
+
+    return { nodes, edges: [...parentEdges, ...mergeEdges] };
   }, [project, rootBranchId]);
 }

@@ -10,7 +10,7 @@ interface ProjectStore {
   createBranch: (parentId: string, name: string, description: string) => Branch;
   updateBranch: (id: string, patch: Partial<Branch>) => void;
   deleteBranch: (id: string) => void;
-  mergeBranches: (sourceId: string, targetId: string, newName: string) => Branch | null;
+  mergeBranches: (sourceId: string, targetId: string) => Branch | null;
   getBranchById: (id: string) => Branch | undefined;
   getChildBranches: (parentId: string) => Branch[];
   getAncestorChain: (id: string) => Branch[];
@@ -99,14 +99,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }));
   },
 
-  mergeBranches: (sourceId, targetId, newName) => {
-    const { project, createBranch } = get();
+  mergeBranches: (sourceId, targetId) => {
+    const { project } = get();
     if (!project) return null;
     const target = project.branches.find((b) => b.id === targetId);
     if (!target) return null;
-    const newBranch = createBranch(targetId, newName, `Blend of branches`);
-    get().updateBranch(sourceId, { status: 'merged' });
-    return newBranch;
+    // Source is absorbed into target — mark it merged, target survives unchanged
+    get().updateBranch(sourceId, { status: 'merged', mergedIntoId: targetId });
+    return target;
   },
 
   getBranchById: (id) => {

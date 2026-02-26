@@ -7,6 +7,7 @@ interface CanvasStore {
   previewPopupBranchId: string | null;
   previewPopupAnchor: { x: number; y: number } | null;
   fitViewTrigger: number;
+  blendTargetId: string | null;
   setViewport: (vp: ViewportState) => void;
   setHoveredNode: (id: string | null) => void;
   openPreviewPopup: (branchId: string, anchor: { x: number; y: number }) => void;
@@ -14,6 +15,7 @@ interface CanvasStore {
   scheduleClosePreviewPopup: () => void;
   cancelClosePreviewPopup: () => void;
   triggerFitView: () => void;
+  setBlendTarget: (id: string | null) => void;
 }
 
 // Module-level timer so BranchNode and BranchPreviewPopup share the same handle
@@ -25,6 +27,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   previewPopupBranchId: null,
   previewPopupAnchor: null,
   fitViewTrigger: 0,
+  blendTargetId: null,
 
   setViewport: (vp) => set({ viewport: vp }),
   setHoveredNode: (id) => set({ hoveredNodeId: id }),
@@ -62,4 +65,6 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   triggerFitView: () => set((s) => ({ fitViewTrigger: s.fitViewTrigger + 1 })),
+
+  setBlendTarget: (id) => set({ blendTargetId: id }),
 }));
