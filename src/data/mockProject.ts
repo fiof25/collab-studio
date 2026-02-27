@@ -404,10 +404,9 @@ export const branches: Branch[] = [
   {
     id: 'branch_blend',
     name: 'dark-mobile-blend',
-    description: 'Blended into dark-mode — dark theme fully absorbed the mobile-first layout.',
+    description: 'Blended with dark-mode — dark theme and mobile-first layout combined.',
     parentId: 'branch_dark',
     status: 'merged',
-    mergedIntoId: 'branch_hero',
     color: '#EC4899',
     createdAt: now - day * 1,
     updatedAt: now - hour * 0.25,

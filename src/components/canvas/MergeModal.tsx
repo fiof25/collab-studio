@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Merge, ArrowRight, GitBranch, Check } from 'lucide-react';
+import { Merge, GitBranch, Check } from 'lucide-react';
 import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/shared/Button';
 import { useUIStore } from '@/store/useUIStore';
@@ -78,26 +78,34 @@ export function MergeModal({ variant }: MergeModalProps) {
       return next;
     });
 
+  // Toggle selection for the toolbar branch picker (select up to 2)
+  const handleBranchClick = (id: string) => {
+    if (sourceId === id) {
+      setSourceId(targetId);
+      setTargetId('');
+    } else if (targetId === id) {
+      setTargetId('');
+    } else if (!sourceId) {
+      setSourceId(id);
+    } else if (!targetId) {
+      setTargetId(id);
+    }
+  };
+
   const handleBlend = () => {
     if (!sourceId || !targetId) return;
     setLoading(true);
     setTimeout(() => {
       const result = mergeBranches(sourceId, targetId);
       if (result) {
-        const sourceFeats = [...sourceSelected]
-          .map((id) => sourceBranch?.checkpoints.find((c) => c.id === id)?.label)
-          .filter(Boolean) as string[];
-        const targetFeats = [...targetSelected]
-          .map((id) => targetBranch?.checkpoints.find((c) => c.id === id)?.label)
-          .filter(Boolean) as string[];
-        const parts = [
-          sourceFeats.length ? `Brought in: ${sourceFeats.join(', ')}` : '',
-          targetFeats.length ? `Kept: ${targetFeats.join(', ')}` : '',
-        ].filter(Boolean);
-        const detail = parts.length ? ` — ${parts.join(' · ')}` : '';
+        const allFeats = [
+          ...[...sourceSelected].map((id) => result.source.checkpoints.find((c) => c.id === id)?.label),
+          ...[...targetSelected].map((id) => result.target.checkpoints.find((c) => c.id === id)?.label),
+        ].filter(Boolean) as string[];
+        const detail = allFeats.length ? ` — ${allFeats.join(', ')}` : '';
         pushToast({
           type: 'success',
-          message: `"${toDisplayName(sourceBranch?.name ?? '')}" blended into "${toDisplayName(result.name)}"${detail}`,
+          message: `"${toDisplayName(result.source.name)}" and "${toDisplayName(result.target.name)}" blended${detail}`,
         });
       }
       closeModal();
@@ -188,56 +196,25 @@ export function MergeModal({ variant }: MergeModalProps) {
             />
           ) : null
         ) : (
-          /* Toolbar-triggered: visual card pickers, then feature picker */
+          /* Toolbar-triggered: pick two branches, then feature picker */
           <div className="space-y-4">
             <p className="text-xs text-ink-muted">
-              Pick the branch to absorb and the branch that survives.
+              Select two branches to blend.
             </p>
-            <div className="flex gap-3">
-              {/* Absorbed column */}
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-red-400/70" />
-                  <span className="text-2xs font-medium text-ink-muted uppercase tracking-wide">Absorbed</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {activeBranches
-                    .filter((b) => b.id !== targetId)
-                    .map((b) => (
-                      <BranchCard
-                        key={b.id}
-                        branch={b}
-                        selected={sourceId === b.id}
-                        onClick={() => setSourceId(b.id === sourceId ? '' : b.id)}
-                      />
-                    ))}
-                </div>
-              </div>
-
-              {/* Arrow */}
-              <div className="flex items-center justify-center pt-7 flex-shrink-0">
-                <ArrowRight size={15} className="text-ink-muted" />
-              </div>
-
-              {/* Survives column */}
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-status-active" />
-                  <span className="text-2xs font-medium text-ink-muted uppercase tracking-wide">Survives</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {activeBranches
-                    .filter((b) => b.id !== sourceId)
-                    .map((b) => (
-                      <BranchCard
-                        key={b.id}
-                        branch={b}
-                        selected={targetId === b.id}
-                        onClick={() => setTargetId(b.id === targetId ? '' : b.id)}
-                      />
-                    ))}
-                </div>
-              </div>
+            <div className="flex flex-col gap-1.5">
+              {activeBranches.map((b) => {
+                const isSelected = sourceId === b.id || targetId === b.id;
+                const bothSelected = !!(sourceId && targetId);
+                return (
+                  <BranchCard
+                    key={b.id}
+                    branch={b}
+                    selected={isSelected}
+                    disabled={bothSelected && !isSelected}
+                    onClick={() => handleBranchClick(b.id)}
+                  />
+                );
+              })}
             </div>
 
             {/* Feature picker appears once both branches are selected */}
@@ -314,24 +291,22 @@ function FeaturePicker({
           <span className="text-xs font-semibold text-ink-primary truncate">
             {toDisplayName(sourceBranch.name)}
           </span>
-          <span className="ml-auto text-2xs text-red-400/70 flex-shrink-0">absorbed</span>
         </div>
         <div className="flex-1 px-4 py-2.5 flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: targetBranch.color }} />
           <span className="text-xs font-semibold text-ink-primary truncate">
             {toDisplayName(targetBranch.name)}
           </span>
-          <span className="ml-auto text-2xs text-status-active flex-shrink-0">survives</span>
         </div>
       </div>
 
       {/* Sub-labels */}
       <div className="flex border-b border-line">
         <div className="flex-1 px-4 pt-2.5 pb-1 border-r border-line">
-          <p className="text-2xs text-ink-muted">Which features to carry over?</p>
+          <p className="text-2xs text-ink-muted">Which features to include?</p>
         </div>
         <div className="flex-1 px-4 pt-2.5 pb-1">
-          <p className="text-2xs text-ink-muted">Which features to keep?</p>
+          <p className="text-2xs text-ink-muted">Which features to include?</p>
         </div>
       </div>
 
@@ -429,19 +404,24 @@ function CheckItem({
 function BranchCard({
   branch,
   selected,
+  disabled,
   onClick,
 }: {
   branch: Branch;
   selected: boolean;
+  disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={[
         'w-full text-left px-2.5 py-2 rounded-xl border transition-all',
         selected
-          ? 'border-accent-pink bg-accent-pink/10'
+          ? 'border-accent-violet bg-accent-violet/10'
+          : disabled
+          ? 'border-line bg-surface-2 opacity-40 cursor-not-allowed'
           : 'border-line bg-surface-2 hover:border-line-accent hover:bg-surface-3',
       ].join(' ')}
     >
@@ -450,7 +430,7 @@ function BranchCard({
         <span className="text-xs font-medium text-ink-primary truncate flex-1">
           {toDisplayName(branch.name)}
         </span>
-        {selected && <Check size={11} className="text-accent-pink flex-shrink-0" />}
+        {selected && <Check size={11} className="text-accent-violet flex-shrink-0" />}
       </div>
       {branch.description && (
         <p className="text-2xs text-ink-muted truncate mt-0.5 pl-4">{branch.description}</p>

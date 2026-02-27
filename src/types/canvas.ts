@@ -21,7 +21,6 @@ export interface BranchEdgeData extends Record<string, unknown> {
   parentColor: string;
   childColor: string;
   isActive: boolean;
-  isMergeEdge?: boolean;
 }
 
 export type CanvasBranchNode = Node<BranchNodeData, 'branchNode'>;
