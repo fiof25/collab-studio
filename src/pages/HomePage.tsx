@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Camera, Plus, ChevronRight } from 'lucide-react';
+import { Camera, Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
@@ -15,7 +15,7 @@ const day = hour * 24;
 const alice: Collaborator = {
   id: 'user_alice',
   name: 'Alice Kim',
-  avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=alice&backgroundColor=b6e3f4',
+  avatarUrl: '/catpfp.jpg',
   color: '#8B5CF6',
 };
 const bob: Collaborator = {
@@ -69,42 +69,6 @@ const MOCK_PROJECTS: HomeProject[] = [
     preview: '',
     isReal: true,
   },
-  {
-    id: 'proj_02',
-    name: 'Mobile App Prototype',
-    description: 'iOS-first mobile dashboard with dark theme and native interactions.',
-    branchCount: 4,
-    snapshotCount: 11,
-    collaborators: [alice, dan],
-    updatedAt: now - hour * 3,
-    accentColor: '#06B6D4',
-    preview: mobilePreview,
-    isReal: false,
-  },
-  {
-    id: 'proj_03',
-    name: 'Analytics Dashboard',
-    description: 'Internal dashboard for tracking KPIs and user metrics.',
-    branchCount: 3,
-    snapshotCount: 6,
-    collaborators: [bob, clara],
-    updatedAt: now - day * 1,
-    accentColor: '#10B981',
-    preview: dashPreview,
-    isReal: false,
-  },
-  {
-    id: 'proj_04',
-    name: 'Marketing Site',
-    description: 'Public-facing marketing site for Nexus — new brand direction.',
-    branchCount: 5,
-    snapshotCount: 14,
-    collaborators: [clara, alice, dan],
-    updatedAt: now - day * 2,
-    accentColor: '#EC4899',
-    preview: marketingPreview,
-    isReal: false,
-  },
 ];
 
 interface ActivityItem {
@@ -117,12 +81,14 @@ interface ActivityItem {
 }
 
 const ACTIVITIES: ActivityItem[] = [
-  { id: 'a1', actor: alice, verb: 'saved a version on', target: 'hero-redesign', targetColor: '#06B6D4', timestamp: now - hour * 0.5 },
-  { id: 'a2', actor: bob, verb: 'branched off from', target: 'dark-mode', targetColor: '#A855F7', timestamp: now - hour * 5 },
-  { id: 'a3', actor: clara, verb: 'commented on', target: 'mobile-first', targetColor: '#10B981', timestamp: now - hour * 6 },
-  { id: 'a4', actor: alice, verb: 'blended', target: 'dark-mode + mobile-first', targetColor: '#EC4899', timestamp: now - day * 1 },
-  { id: 'a5', actor: dan, verb: 'joined', target: 'Landing Page Redesign', targetColor: '#8B5CF6', timestamp: now - day * 1.5 },
-  { id: 'a6', actor: bob, verb: 'saved a version on', target: 'perf-pass', targetColor: '#F59E0B', timestamp: now - day * 2 },
+  { id: 'a1', actor: alice, verb: 'saved a checkpoint on', target: 'hero-redesign', targetColor: '', timestamp: now - hour * 0.2 },
+  { id: 'a2', actor: bob, verb: 'left a comment on', target: 'dark-mode', targetColor: '', timestamp: now - hour * 1 },
+  { id: 'a3', actor: clara, verb: 'created a new version from', target: 'mobile-first', targetColor: '', timestamp: now - hour * 2 },
+  { id: 'a4', actor: alice, verb: 'blended', target: 'dark-mode + mobile-first', targetColor: '', timestamp: now - hour * 5 },
+  { id: 'a5', actor: bob, verb: 'renamed', target: 'v3 → perf-pass', targetColor: '', timestamp: now - hour * 8 },
+  { id: 'a6', actor: clara, verb: 'saved a checkpoint on', target: 'mobile-first', targetColor: '', timestamp: now - day * 1 },
+  { id: 'a7', actor: alice, verb: 'created a new version from', target: 'hero-redesign', targetColor: '', timestamp: now - day * 1.2 },
+  { id: 'a8', actor: bob, verb: 'saved a checkpoint on', target: 'dark-mode', targetColor: '', timestamp: now - day * 2 },
 ];
 
 // ─── Contribution data (GitHub-style grid) ────────────────────────────────────
@@ -226,14 +192,6 @@ function ProjectCard({
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 text-2xs text-ink-muted">
-            <span className="flex items-center gap-1">
-              <GitBranch size={9} />
-              {project.branchCount}
-            </span>
-            <span className="flex items-center gap-1">
-              <Camera size={9} />
-              {project.snapshotCount}
-            </span>
             <span>{formatRelativeTime(project.updatedAt)}</span>
           </div>
           <AvatarGroup collaborators={project.collaborators} max={3} size="xs" />
@@ -357,66 +315,6 @@ export function HomePage() {
               </div>
             </section>
 
-            {/* Contributions */}
-            <section>
-              <div className="flex items-baseline justify-between mb-4">
-                <h3 className="text-sm font-semibold text-ink-primary">Contributions</h3>
-                <span className="text-2xs text-ink-muted">{TOTAL_CONTRIBS} contributions in the last 6 months</span>
-              </div>
-              <div className="border border-line rounded-xl p-4 bg-surface-1 overflow-x-auto">
-                {/* Month labels */}
-                <div className="mb-1.5" style={{ paddingLeft: 28 }}>
-                  <div className="flex gap-[3px]">
-                    {MONTH_LABELS.map((label, i) => (
-                      <div key={i} className="text-2xs text-ink-muted flex-shrink-0" style={{ width: 11 }}>{label}</div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Grid */}
-                <div className="flex gap-1.5">
-                  {/* Day labels */}
-                  <div className="flex flex-col gap-[3px] flex-shrink-0" style={{ width: 24 }}>
-                    {DAY_LABELS.map((label, i) => (
-                      <div key={i} className="text-2xs text-ink-muted flex items-center justify-end" style={{ height: 11 }}>
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Week columns — fixed 11px cells like GitHub */}
-                  <div className="flex gap-[3px]">
-                    {CONTRIB_GRID.map((week, w) => (
-                      <div key={w} className="flex flex-col gap-[3px]">
-                        {week.map((intensity, d) => (
-                          <div
-                            key={d}
-                            className="rounded-sm flex-shrink-0"
-                            title={intensity > 0 ? `${intensity} contribution${intensity > 1 ? 's' : ''}` : 'No contributions'}
-                            style={{
-                              width: 11,
-                              height: 11,
-                              background: '#8B5CF6',
-                              opacity: intensity === 0 ? 0.07 : 0.18 + intensity * 0.2,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Legend */}
-                <div className="flex items-center gap-1.5 mt-3 justify-end">
-                  <span className="text-2xs text-ink-muted">Less</span>
-                  {[0.07, 0.28, 0.48, 0.68, 0.88].map((op, i) => (
-                    <div key={i} className="rounded-sm flex-shrink-0 bg-accent-violet" style={{ width: 11, height: 11, opacity: op }} />
-                  ))}
-                  <span className="text-2xs text-ink-muted">More</span>
-                </div>
-              </div>
-            </section>
-
             {/* Activity */}
             <section>
               <h3 className="text-sm font-semibold text-ink-primary mb-4">Activity</h3>
@@ -424,7 +322,7 @@ export function HomePage() {
                 {ACTIVITIES.map((item, i) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 px-4 py-3 bg-surface-1 hover:bg-surface-2 transition-colors ${
+                    className={`flex items-center gap-2.5 px-3 py-2 bg-surface-1 hover:bg-surface-2 transition-colors ${
                       i < ACTIVITIES.length - 1 ? 'border-b border-line' : ''
                     }`}
                   >
@@ -434,7 +332,7 @@ export function HomePage() {
                         {item.actor.name.split(' ')[0]}
                       </span>{' '}
                       {item.verb}{' '}
-                      <span className="font-medium" style={{ color: item.targetColor }}>
+                      <span className="font-medium text-ink-primary">
                         {item.target}
                       </span>
                     </p>
