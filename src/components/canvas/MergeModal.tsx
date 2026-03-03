@@ -99,7 +99,7 @@ export function MergeModal({ variant }: MergeModalProps) {
         const names = result.map((b) => `"${toDisplayName(b.name)}"`);
         const label = names.length === 2
           ? `${names[0]} and ${names[1]} blended`
-          : `${names.length} branches blended`;
+          : `${names.length} versions blended`;
         pushToast({ type: 'success', message: label });
       }
       closeModal();
@@ -111,7 +111,7 @@ export function MergeModal({ variant }: MergeModalProps) {
     if (!parentId || !newName.trim()) return;
     setLoading(true);
     setTimeout(() => {
-      createBranch(parentId, newName.trim(), `Branched off from ${parentBranch?.name}`);
+      createBranch(parentId, newName.trim(), `Based on ${parentBranch?.name}`);
       pushToast({ type: 'success', message: `"${newName.trim()}" created` });
       closeModal();
       setLoading(false);
@@ -122,10 +122,10 @@ export function MergeModal({ variant }: MergeModalProps) {
 
   if (variant === 'newBranch') {
     return (
-      <Modal open={open} onClose={closeModal} title="Branch off" size="sm">
+      <Modal open={open} onClose={closeModal} title="New version" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-ink-muted mb-1.5 block">Parent branch</label>
+            <label className="text-xs text-ink-muted mb-1.5 block">Based on</label>
             <select
               className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
               value={parentId}
@@ -139,10 +139,10 @@ export function MergeModal({ variant }: MergeModalProps) {
             </select>
           </div>
           <div>
-            <label className="text-xs text-ink-muted mb-1.5 block">Branch name</label>
+            <label className="text-xs text-ink-muted mb-1.5 block">Version name</label>
             <input
               className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
-              placeholder="my-new-branch"
+              placeholder="my-new-version"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -159,7 +159,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               className="flex-1"
               icon={<GitBranch size={14} />}
             >
-              Branch off
+              Create version
             </Button>
           </div>
         </div>
@@ -170,7 +170,7 @@ export function MergeModal({ variant }: MergeModalProps) {
   // ── Blend variant ───────────────────────────────────────────────────────────
 
   return (
-    <Modal open={open} onClose={closeModal} title="Blend branches" size="lg">
+    <Modal open={open} onClose={closeModal} title="Blend versions" size="lg">
       <div className="space-y-5">
 
         {isDragOrMultiTriggered ? (
@@ -188,7 +188,7 @@ export function MergeModal({ variant }: MergeModalProps) {
           /* Toolbar-triggered: pick two branches, then feature picker */
           <div className="space-y-4">
             <p className="text-xs text-ink-muted">
-              Select two branches to blend.
+              Select two versions to blend.
             </p>
             <div className="flex flex-col gap-1.5">
               {activeBranches.map((b) => {
@@ -250,80 +250,39 @@ interface FeaturePickerProps {
 }
 
 function FeaturePicker({ branches, featureSelections, notes, onToggle, onNoteChange }: FeaturePickerProps) {
-  const colStyle = { minWidth: 180 };
   return (
-    <div className="rounded-2xl border border-line bg-surface-2 overflow-hidden">
-      <div className="overflow-x-auto">
-        {/* Column headers */}
-        <div className="flex border-b border-line">
-          {branches.map((b, i) => (
-            <div
-              key={b.id}
-              className={`flex-1 px-4 py-2.5 flex items-center gap-2${i < branches.length - 1 ? ' border-r border-line' : ''}`}
-              style={colStyle}
-            >
-              <span className="text-xs font-semibold text-ink-primary truncate">{toDisplayName(b.name)}</span>
-            </div>
-          ))}
+    <div className="flex gap-3">
+      {branches.map((b) => (
+        <div key={b.id} className="flex-1 rounded-2xl border border-line bg-surface-2 p-3 space-y-2 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: b.color }} />
+            <span className="text-xs font-semibold text-ink-primary truncate">{toDisplayName(b.name)}</span>
+          </div>
+          <p className="text-2xs text-ink-secondary">Which features to include?</p>
+          <div className="space-y-0.5">
+            {b.checkpoints.length === 0 ? (
+              <p className="text-2xs text-ink-secondary italic px-1 py-1">No checkpoints</p>
+            ) : (
+              b.checkpoints.map((ckpt) => (
+                <CheckItem
+                  key={ckpt.id}
+                  label={ckpt.label}
+                  checked={featureSelections.get(b.id)?.has(ckpt.id) ?? false}
+                  onChange={() => onToggle(b.id, ckpt.id)}
+                  color={b.color}
+                />
+              ))
+            )}
+          </div>
+          <textarea
+            className="w-full bg-surface-3 rounded-lg text-2xs text-ink-primary placeholder:text-ink-muted/50 resize-none outline-none leading-relaxed px-2 py-1.5"
+            placeholder="Notes for this version…"
+            rows={2}
+            value={notes.get(b.id) ?? ''}
+            onChange={(e) => onNoteChange(b.id, e.target.value)}
+          />
         </div>
-
-        {/* Sub-labels */}
-        <div className="flex border-b border-line">
-          {branches.map((b, i) => (
-            <div
-              key={b.id}
-              className={`flex-1 px-4 pt-2.5 pb-1${i < branches.length - 1 ? ' border-r border-line' : ''}`}
-              style={colStyle}
-            >
-              <p className="text-2xs text-ink-secondary">Which features to include?</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Checkpoint checklist */}
-        <div className="flex">
-          {branches.map((b, i) => (
-            <div
-              key={b.id}
-              className={`flex-1 px-3 py-2 space-y-0.5${i < branches.length - 1 ? ' border-r border-line' : ''}`}
-              style={colStyle}
-            >
-              {b.checkpoints.length === 0 ? (
-                <p className="text-2xs text-ink-secondary italic px-1 py-1">No checkpoints</p>
-              ) : (
-                b.checkpoints.map((ckpt) => (
-                  <CheckItem
-                    key={ckpt.id}
-                    label={ckpt.label}
-                    checked={featureSelections.get(b.id)?.has(ckpt.id) ?? false}
-                    onChange={() => onToggle(b.id, ckpt.id)}
-                    color={b.color}
-                  />
-                ))
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Notes row */}
-        <div className="flex border-t border-line">
-          {branches.map((b, i) => (
-            <div
-              key={b.id}
-              className={`flex-1 px-3 py-2.5${i < branches.length - 1 ? ' border-r border-line' : ''}`}
-              style={colStyle}
-            >
-              <textarea
-                className="w-full bg-transparent text-2xs text-ink-primary placeholder:text-ink-muted/50 resize-none outline-none leading-relaxed"
-                placeholder="Extra notes from this branch…"
-                rows={2}
-                value={notes.get(b.id) ?? ''}
-                onChange={(e) => onNoteChange(b.id, e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

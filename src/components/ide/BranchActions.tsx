@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Camera, MessageCircle, Trash2 } from 'lucide-react';
+import { GitBranch, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/shared/Button';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -55,7 +55,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
   return (
     <div className="flex items-center gap-1.5">
       <Button variant="ghost" size="sm" icon={<MessageCircle size={13} />} onClick={handleComments} title="Comments" className="!px-0 w-8 h-8" />
-      <Button variant="ghost" size="sm" icon={<Camera size={13} />} onClick={handleCheckpoint}>
+      <Button variant="ghost" size="sm" onClick={handleCheckpoint}>
         Save
       </Button>
       <Button variant="ghost" size="sm" icon={<GitBranch size={13} />} onClick={handleFork}>
@@ -65,7 +65,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
       {!isRoot && (
         <button
           onClick={handleDelete}
-          title={confirmingDelete ? 'Click again to confirm' : 'Delete this branch'}
+          title={confirmingDelete ? 'Click again to confirm' : 'Delete this version'}
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm font-medium transition-all border ${
             confirmingDelete
               ? 'border-red-500/60 text-red-400 bg-red-500/10'

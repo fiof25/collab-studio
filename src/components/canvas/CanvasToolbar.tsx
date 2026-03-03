@@ -31,14 +31,14 @@ export function CanvasToolbar() {
 
       <ToolButton
         onClick={() => openModal('newBranch')}
-        title="New branch"
+        title="New version"
         accent
       >
         <GitBranch size={15} />
       </ToolButton>
       <ToolButton
         onClick={() => openModal('merge')}
-        title="Blend branches"
+        title="Blend versions"
         blend
       >
         <Merge size={15} />
