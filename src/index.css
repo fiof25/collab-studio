@@ -7,33 +7,35 @@
   --canvas:        13 13 18;
   --canvas-subtle: 17 17 24;
   --surface-0:     13 13 18;
-  --surface-1:     20 20 28;
-  --surface-2:     28 28 40;
-  --surface-3:     36 36 54;
-  --surface-4:     46 46 69;
+  --surface-1:     28 28 42;
+  --surface-2:     36 36 54;
+  --surface-3:     46 46 68;
+  --surface-4:     58 58 84;
   --ink-primary:   241 241 248;
   --ink-secondary: 152 152 176;
   --ink-muted:     90 90 114;
-  --line:          46 46 69;
-  --line-subtle:   36 36 54;
-  --edge-color:    rgba(255, 255, 255, 0.14);
+  --line:          52 52 76;
+  --line-subtle:   40 40 60;
+  --edge-color:    rgba(255, 255, 255, 0.25);
+  --node-border:   62 62 92;
 }
 
 /* ─── Light mode overrides ────────────────────────────────────────────────── */
 html.light {
-  --canvas:        247 247 252;
-  --canvas-subtle: 238 238 248;
-  --surface-0:     247 247 252;
+  --canvas:        246 245 248;
+  --canvas-subtle: 241 240 244;
+  --surface-0:     246 245 248;
   --surface-1:     255 255 255;
-  --surface-2:     242 242 250;
-  --surface-3:     232 232 244;
-  --surface-4:     220 220 238;
+  --surface-2:     242 242 252;
+  --surface-3:     230 230 244;
+  --surface-4:     218 218 236;
   --ink-primary:   14 14 26;
   --ink-secondary: 58 58 82;
   --ink-muted:     120 120 160;
-  --line:          224 224 238;
-  --line-subtle:   234 234 246;
-  --edge-color:    rgba(0, 0, 0, 0.2);
+  --line:          214 214 230;
+  --line-subtle:   226 226 240;
+  --edge-color:    rgba(0, 0, 0, 0.35);
+  --node-border:   185 185 210;
 }
 
 @layer base {
@@ -53,6 +55,14 @@ html.light {
   /* React Flow overrides */
   .react-flow__background {
     background-color: transparent !important;
+  }
+
+  /* Suppress default RF selection outline — we style selection in BranchNode */
+  .react-flow__node.selected,
+  .react-flow__node:focus,
+  .react-flow__node:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   .react-flow__controls {

@@ -186,11 +186,12 @@ function ProjectCard({
 
   return (
     <div
-      className="rounded-xl overflow-hidden border border-line bg-surface-1 cursor-pointer group hover:border-line-accent transition-all duration-150"
+      className="rounded-xl overflow-hidden bg-surface-1 border cursor-pointer group transition-all duration-150"
+      style={{ borderColor: 'rgb(var(--node-border))' }}
       onClick={() => project.isReal && navigate('/project')}
     >
       {/* Preview */}
-      <div className="overflow-hidden bg-white flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
+      <div className="overflow-hidden bg-surface-2 flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
         {preview ? (
           <iframe
             srcDoc={preview}
@@ -214,7 +215,7 @@ function ProjectCard({
       </div>
 
       {/* Info strip */}
-      <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1">
+      <div className="px-2.5 pt-1.5 pb-2 flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-ink-primary truncate">
             {project.name}
@@ -255,11 +256,8 @@ export function HomePage() {
   return (
     <div className="flex flex-col h-full bg-canvas">
       {/* Header */}
-      <header className="h-12 flex items-center justify-between px-5 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
+      <header className="h-12 flex items-center justify-between px-4 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-lg bg-accent-violet flex items-center justify-center">
-            <GitBranch size={13} className="text-white" />
-          </div>
           <span className="text-sm font-semibold text-ink-primary">Collab Studio</span>
         </div>
 
@@ -354,9 +352,9 @@ export function HomePage() {
                 <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
                 <button
                   onClick={() => navigate('/project')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-violet hover:bg-accent-violet-dark text-white text-xs font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
                 >
-                  <Plus size={12} />
+                  <Plus size={14} />
                   New project
                 </button>
               </div>

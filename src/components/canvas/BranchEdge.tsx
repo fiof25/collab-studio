@@ -19,7 +19,7 @@ export const BranchEdge = memo(function BranchEdge(props: EdgeProps) {
       id={id}
       d={edgePath}
       fill="none"
-      style={{ stroke: 'var(--edge-color)' }}
+      style={{ stroke: 'rgb(var(--node-border))' }}
       strokeWidth="1.5"
       strokeLinecap="round"
     />

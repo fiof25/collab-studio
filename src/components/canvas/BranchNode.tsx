@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Plus, Pencil, Merge } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AvatarGroup } from '@/components/shared/Avatar';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -73,7 +72,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
     hoverTimer = setTimeout(() => {
       const rect = nodeRef.current?.getBoundingClientRect();
       if (rect) {
-        openPreviewPopup(data.branchId, { x: rect.right + 12, y: rect.top });
+        openPreviewPopup(data.branchId, { x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom - CHIP_PAD });
       }
     }, 350);
   };
@@ -130,12 +129,15 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           className={clsx(
             'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-shadow duration-150',
             isArchived && 'opacity-50',
-            isBlendTarget ? 'border-accent-pink shadow-glow-pink' : 'border-line'
+            isBlendTarget ? 'border-accent-pink shadow-glow-pink'
+            : props.selected ? 'border-accent-violet shadow-[0_0_0_2px_rgba(139,92,246,0.25)]'
+            : 'border-transparent'
           )}
+          style={!isBlendTarget && !props.selected ? { borderColor: 'rgb(var(--node-border))' } : undefined}
         >
           {/* Snapshot preview */}
           <div
-            className="overflow-hidden bg-white flex-shrink-0"
+            className="overflow-hidden bg-surface-2 flex-shrink-0"
             style={{ height: PREVIEW_H }}
           >
             {data.codeSnapshot ? (
@@ -161,7 +163,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           </div>
 
           {/* Info strip */}
-          <div className="px-2.5 pt-2 pb-2 border-t border-line flex flex-col gap-1.5">
+          <div className="px-2.5 pt-1.5 pb-2 border-t border-line flex flex-col gap-1">
             {/* Name row */}
             <div className="flex items-center gap-1.5 group/name">
               {renaming ? (
@@ -196,15 +198,12 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
               <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', statusDot[data.status])} />
             </div>
 
-            {/* Description */}
-            {data.description && (
-              <p className="text-2xs text-ink-muted truncate">{data.description}</p>
-            )}
-
-            {/* Avatars + time */}
-            <div className="flex items-center justify-between">
-              <AvatarGroup collaborators={data.collaborators} max={3} size="xs" />
-              <span className="text-2xs text-ink-muted">
+            {/* Description + time on one row */}
+            <div className="flex items-center gap-2">
+              <p className="text-2xs text-ink-secondary truncate flex-1">
+                {data.description ?? ''}
+              </p>
+              <span className="text-2xs text-ink-muted flex-shrink-0">
                 {formatRelativeTime(data.updatedAt)}
               </span>
             </div>

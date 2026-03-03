@@ -5,12 +5,12 @@ interface CanvasStore {
   viewport: ViewportState;
   hoveredNodeId: string | null;
   previewPopupBranchId: string | null;
-  previewPopupAnchor: { x: number; y: number } | null;
+  previewPopupAnchor: { x: number; y: number; bottom: number } | null;
   fitViewTrigger: number;
   blendTargetId: string | null;
   setViewport: (vp: ViewportState) => void;
   setHoveredNode: (id: string | null) => void;
-  openPreviewPopup: (branchId: string, anchor: { x: number; y: number }) => void;
+  openPreviewPopup: (branchId: string, anchor: { x: number; y: number; bottom: number }) => void;
   closePreviewPopup: () => void;
   scheduleClosePreviewPopup: () => void;
   cancelClosePreviewPopup: () => void;

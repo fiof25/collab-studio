@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GitBranch, ArrowLeft, Sun, Moon, ListTodo } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, ListTodo } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -31,20 +31,14 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
           </button>
         )}
 
-        {/* Logo */}
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
-        >
-          <div className="w-6 h-6 rounded-lg bg-accent-violet flex items-center justify-center">
-            <GitBranch size={13} className="text-white" />
-          </div>
-          {isCanvas && (
-            <span className="text-sm font-semibold text-ink-primary hidden sm:block">
-              Collab Studio
-            </span>
-          )}
-        </button>
+        {isCanvas && (
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm font-semibold text-ink-primary hidden sm:block hover:opacity-70 transition-opacity"
+          >
+            Collab Studio
+          </button>
+        )}
 
         {project && isCanvas && (
           <div className="flex items-center gap-2 min-w-0">
@@ -58,7 +52,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         {left}
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={toggle}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -79,7 +73,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
           <ListTodo size={14} />
         </button>
 
-        {right}
+        {right && <><div className="w-px h-4 bg-line mx-1" />{right}</>}
       </div>
     </header>
   );

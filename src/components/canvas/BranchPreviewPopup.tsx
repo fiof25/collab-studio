@@ -53,16 +53,22 @@ export function BranchPreviewPopup() {
       {branch && previewPopupAnchor && (
         <motion.div
           key={branch.id}
-          initial={{ opacity: 0, scale: 0.92, x: -6 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.92, x: -6 }}
+          initial={{ opacity: 0, scale: 0.92, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 6 }}
           transition={{ type: 'spring', duration: 0.22, bounce: 0.12 }}
           className="fixed z-50 pointer-events-none"
-          style={{
-            left: Math.min(previewPopupAnchor.x, window.innerWidth - 316),
-            top: Math.max(8, Math.min(previewPopupAnchor.y, window.innerHeight - 480)),
-            width: 260,
-          }}
+          style={(() => {
+            const POPUP_H = 155;
+            const POPUP_W = 260;
+            const GAP = 8;
+            const left = Math.min(Math.max(GAP, previewPopupAnchor.x - POPUP_W / 2), window.innerWidth - POPUP_W - GAP);
+            const spaceAbove = previewPopupAnchor.y - GAP;
+            const top = spaceAbove >= POPUP_H
+              ? previewPopupAnchor.y - GAP - POPUP_H
+              : previewPopupAnchor.bottom + GAP;
+            return { left, top, width: POPUP_W };
+          })()}
         >
           <div
             className="rounded-xl overflow-hidden border border-line bg-surface-1 pointer-events-auto"
