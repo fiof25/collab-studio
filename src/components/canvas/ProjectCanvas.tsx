@@ -14,6 +14,7 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type OnSelectionChangeFunc,
+  SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useBranchTree } from '@/hooks/useBranchTree';
@@ -165,7 +166,7 @@ function FlowInner() {
         nodesConnectable={false}
         elementsSelectable={true}
         selectionOnDrag={true}
-        selectionMode="partial"
+        selectionMode={SelectionMode.Partial}
         panOnDrag={[1, 2]}
         multiSelectionKeyCode={['Meta', 'Shift']}
         onSelectionChange={handleSelectionChange}

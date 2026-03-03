@@ -12,6 +12,7 @@ import { toDisplayName } from '@/utils/branchUtils';
 import type { BranchNodeData } from '@/types/canvas';
 const NODE_W = 240;
 const PREVIEW_H = 138;
+const CHIP_PAD = 0;
 
 let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 

@@ -7,7 +7,7 @@ const hour = 1000 * 60 * 60;
 const alice: Collaborator = {
   id: 'user_alice',
   name: 'Alice Kim',
-  avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=alice&backgroundColor=b6e3f4',
+  avatarUrl: '/catpfp.jpg',
   color: '#8B5CF6',
 };
 
