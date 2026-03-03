@@ -1,12 +1,10 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, Camera, MessageCircle, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useUIStore } from '@/store/useUIStore';
-import { Badge } from '@/components/shared/Badge';
-import { AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import { toDisplayName } from '@/utils/branchUtils';
 
@@ -23,7 +21,6 @@ export function BranchPreviewPopup() {
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const branch = previewPopupBranchId ? getBranchById(previewPopupBranchId) : null;
-  const latestComments = branch?.comments.slice(-2) ?? [];
 
   const handleStartNewVersion = () => {
     if (!branch) return;
@@ -64,99 +61,28 @@ export function BranchPreviewPopup() {
           style={{
             left: Math.min(previewPopupAnchor.x, window.innerWidth - 316),
             top: Math.max(8, Math.min(previewPopupAnchor.y, window.innerHeight - 480)),
-            width: 300,
+            width: 260,
           }}
         >
-          {/* pointer-events-auto so buttons work; mouse enter/leave keeps popup alive */}
           <div
             className="rounded-xl overflow-hidden border border-line bg-surface-1 pointer-events-auto"
             onMouseEnter={cancelClosePreviewPopup}
             onMouseLeave={scheduleClosePreviewPopup}
           >
-            {/* Solid color top accent */}
-            <div className="h-0.5 w-full" style={{ background: branch.color }} />
-
             {/* Info section */}
             <div className="p-3 pb-2">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <h3 className="text-sm font-semibold text-ink-primary truncate">
-                  {toDisplayName(branch.name)}
-                </h3>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge status={branch.status} />
-                  <AvatarGroup collaborators={branch.collaborators} max={3} size="xs" />
-                </div>
-              </div>
+              <h3 className="text-sm font-semibold text-ink-primary truncate mb-1.5">
+                {toDisplayName(branch.name)}
+              </h3>
 
-              <p className="text-xs text-ink-secondary leading-relaxed mb-2.5 line-clamp-2">
+              <p className="text-xs text-ink-secondary leading-relaxed mb-2 line-clamp-2">
                 {branch.description}
               </p>
 
-              {/* Tags */}
-              {branch.tags.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap mb-2.5">
-                  {branch.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-2xs bg-surface-2 text-ink-muted"
-                    >
-                      <Tag size={8} />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center gap-3 text-2xs text-ink-muted">
-                <span className="flex items-center gap-1">
-                  <Camera size={10} />
-                  {branch.checkpoints.length} versions
-                </span>
-                <span>Updated {formatRelativeTime(branch.updatedAt)}</span>
-              </div>
+              <span className="text-2xs text-ink-muted">
+                Updated {formatRelativeTime(branch.updatedAt)}
+              </span>
             </div>
-
-            {/* Comments section */}
-            {latestComments.length > 0 && (
-              <>
-                <div className="mx-3 border-t border-line" />
-                <div className="p-3 pt-2.5">
-                  <div className="flex items-center gap-1 mb-2">
-                    <MessageCircle size={11} className="text-ink-muted" />
-                    <span className="text-2xs font-medium text-ink-muted">
-                      {branch.comments.length} comment{branch.comments.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="space-y-2.5">
-                    {latestComments.map((comment) => (
-                      <div key={comment.id} className="flex gap-2">
-                        <img
-                          src={comment.authorAvatarUrl}
-                          alt={comment.authorName}
-                          className="w-5 h-5 rounded-full flex-shrink-0 bg-surface-3 mt-0.5"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-baseline gap-1.5 mb-0.5">
-                            <span
-                              className="text-2xs font-semibold"
-                              style={{ color: comment.authorColor }}
-                            >
-                              {comment.authorName.split(' ')[0]}
-                            </span>
-                            <span className="text-2xs text-ink-muted">
-                              {formatRelativeTime(comment.timestamp)}
-                            </span>
-                          </div>
-                          <p className="text-2xs text-ink-secondary leading-relaxed line-clamp-2">
-                            {comment.content}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
 
             {/* Footer actions */}
             <div className="border-t border-line flex">

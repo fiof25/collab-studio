@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { clsx } from 'clsx';
-import type { CodeBlock } from '@/types/chat';
+interface CodeBlock {
+  code: string;
+  language: string;
+  filename?: string;
+}
 
 interface CodeViewerProps {
   block: CodeBlock;
