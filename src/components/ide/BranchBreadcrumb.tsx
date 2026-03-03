@@ -50,10 +50,6 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
             {isCurrent ? (
               editing ? (
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: branch.color }}
-                  />
                   <input
                     ref={inputRef}
                     value={draft}
@@ -63,8 +59,7 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                       if (e.key === 'Enter') commitRename(branch.id, branch.name);
                       if (e.key === 'Escape') setEditing(false);
                     }}
-                    className="text-sm font-semibold font-mono bg-transparent border-b focus:outline-none max-w-[160px]"
-                    style={{ color: branch.color, borderColor: branch.color + '60' }}
+                    className="text-sm font-semibold font-mono bg-transparent border-b border-white/30 text-ink-primary focus:outline-none max-w-[160px]"
                   />
                 </div>
               ) : (
@@ -73,13 +68,8 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                   title="Click to rename"
                   className="flex items-center gap-1.5 group/name"
                 >
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: branch.color }}
-                  />
                   <span
-                    className="text-sm font-semibold truncate max-w-[160px]"
-                    style={{ color: branch.color }}
+                    className="text-sm font-semibold truncate max-w-[160px] text-ink-primary"
                   >
                     {toDisplayName(branch.name)}
                   </span>
@@ -94,10 +84,6 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                 onClick={() => navigate(`/branch/${branch.id}`)}
                 className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink-secondary transition-colors truncate max-w-[120px]"
               >
-                <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0 opacity-60"
-                  style={{ background: branch.color }}
-                />
                 {toDisplayName(branch.name)}
               </button>
             )}

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Merge, Camera, MessageCircle, Trash2 } from 'lucide-react';
+import { GitBranch, Camera, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/shared/Button';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -23,7 +23,6 @@ export function BranchActions({ branchId }: BranchActionsProps) {
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFork = () => openModal('newBranch', { parentId: branchId });
-  const handleMerge = () => openModal('merge', { sourceId: branchId });
   const handleComments = () => openModal('comments', { branchId });
 
   const handleCheckpoint = () => {
@@ -55,17 +54,12 @@ export function BranchActions({ branchId }: BranchActionsProps) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <Button variant="ghost" size="sm" icon={<Camera size={13} />} onClick={handleCheckpoint} title="Save version">
-        Save version
-      </Button>
-      <Button variant="ghost" size="sm" icon={<MessageCircle size={13} />} onClick={handleComments}>
-        Comments
+      <Button variant="ghost" size="sm" icon={<MessageCircle size={13} />} onClick={handleComments} title="Comments" className="!px-0 w-8 h-8" />
+      <Button variant="ghost" size="sm" icon={<Camera size={13} />} onClick={handleCheckpoint}>
+        Save
       </Button>
       <Button variant="ghost" size="sm" icon={<GitBranch size={13} />} onClick={handleFork}>
-        Branch off
-      </Button>
-      <Button variant="blend" size="sm" icon={<Merge size={13} />} onClick={handleMerge}>
-        Blend
+        New version
       </Button>
 
       {!isRoot && (

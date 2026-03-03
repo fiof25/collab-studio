@@ -19,7 +19,7 @@ const deviceWidths: Record<DeviceWidth, string> = {
   mobile: '375px',
 };
 
-export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
+export function PreviewPanel({ branchId }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('preview');
   const [device, setDevice] = useState<DeviceWidth>('full');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -40,9 +40,6 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
 
   return (
     <div className="flex flex-col h-full bg-surface-1">
-      {/* Accent top border */}
-      <div className="h-0.5 flex-shrink-0" style={{ background: accentColor }} />
-
       {/* Tab bar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-line flex-shrink-0">
         <div className="flex items-center gap-1">

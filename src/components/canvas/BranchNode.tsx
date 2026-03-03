@@ -2,7 +2,7 @@ import { memo, useRef, useEffect, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Pencil, Merge } from 'lucide-react';
+import { Camera, Pencil, Merge } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -10,20 +10,8 @@ import { useUIStore } from '@/store/useUIStore';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import { toDisplayName } from '@/utils/branchUtils';
 import type { BranchNodeData } from '@/types/canvas';
-import type { BranchStatus } from '@/types/branch';
-
 const NODE_W = 240;
 const PREVIEW_H = 138;
-// Extra bottom padding keeps the hover chip inside the node bounding box,
-// so moving from card → chip doesn't fire onMouseLeave on the node.
-const CHIP_PAD = 28;
-
-const statusDot: Record<BranchStatus, string> = {
-  active: 'bg-status-active',
-  merging: 'bg-status-merging animate-pulse',
-  merged: 'bg-status-merged',
-  archived: 'bg-status-archived',
-};
 
 let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -121,7 +109,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
         whileHover={props.dragging ? {} : { scale: 1.02, y: -2 }}
         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
         className="cursor-pointer select-none group relative"
-        style={{ width: NODE_W, paddingBottom: CHIP_PAD }}
+        style={{ width: NODE_W }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
@@ -131,13 +119,11 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           className={clsx(
             'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-all duration-100',
             isArchived && 'opacity-50',
-            isBlendTarget ? 'border-accent-pink shadow-glow-pink'
-            : props.selected ? 'border-accent-violet'
+            props.selected || isBlendTarget ? 'border-accent-violet'
             : 'border-transparent'
           )}
           style={
-            isBlendTarget ? undefined
-            : props.selected
+            props.selected || isBlendTarget
               ? { borderColor: 'rgb(139 92 246)', boxShadow: '0 0 0 1px rgba(139,92,246,0.9)' }
               : { borderColor: 'rgb(var(--node-border))' }
           }
@@ -202,7 +188,6 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                   <Pencil size={9} />
                 </button>
               )}
-              <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', statusDot[data.status])} />
             </div>
 
             {/* Description + time on one row */}
@@ -220,36 +205,20 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
         {/* Blend target overlay */}
         {isBlendTarget && (
           <div className="absolute inset-0 rounded-xl flex items-center justify-center pointer-events-none z-10">
-            <div className="px-3 py-1.5 rounded-full bg-accent-pink text-white text-xs font-semibold flex items-center gap-1.5">
+            <div className="px-3 py-1.5 rounded-full bg-accent-violet text-white text-xs font-semibold flex items-center gap-1.5">
               <Merge size={11} />
               Drop to blend
             </div>
           </div>
         )}
 
-        {/* Hover chip — floats below the card on hover */}
-        <div
-          className={clsx(
-            'absolute bottom-0 left-0 right-0 flex justify-center',
-            'opacity-0 group-hover:opacity-100 transition-opacity duration-150',
-            'pointer-events-none group-hover:pointer-events-auto'
-          )}
-        >
-          <button
-            onClick={handleStartNewVersion}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-1 border border-line text-2xs text-ink-muted hover:text-ink-primary hover:border-line-accent transition-colors"
-          >
-            <Plus size={10} />
-            Branch off
-          </button>
-        </div>
       </motion.div>
 
       <Handle
         type="source"
         position={Position.Bottom}
         className="opacity-0 pointer-events-none"
-        style={{ background: 'transparent', border: 'none', bottom: CHIP_PAD }}
+        style={{ background: 'transparent', border: 'none' }}
       />
     </>
   );

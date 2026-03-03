@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -11,24 +11,12 @@ export function BranchPreviewPopup() {
   const navigate = useNavigate();
   const { previewPopupBranchId, previewPopupAnchor, closePreviewPopup, cancelClosePreviewPopup, scheduleClosePreviewPopup } = useCanvasStore();
   const getBranchById = useProjectStore((s) => s.getBranchById);
-  const createBranch = useProjectStore((s) => s.createBranch);
-  const getChildBranches = useProjectStore((s) => s.getChildBranches);
   const deleteBranch = useProjectStore((s) => s.deleteBranch);
   const restoreBranch = useProjectStore((s) => s.restoreBranch);
   const pushToast = useUIStore((s) => s.pushToast);
   const setLastUndo = useUIStore((s) => s.setLastUndo);
 
   const branch = previewPopupBranchId ? getBranchById(previewPopupBranchId) : null;
-
-  const handleStartNewVersion = () => {
-    if (!branch) return;
-    const siblings = getChildBranches(branch.id);
-    const name = `v${siblings.length + 1}`;
-    const newBranch = createBranch(branch.id, name, `New version from ${branch.name}`);
-    closePreviewPopup();
-    pushToast({ type: 'success', message: `"${name}" created — click the name to rename it` });
-    navigate(`/branch/${newBranch.id}`);
-  };
 
   const handleDelete = () => {
     if (!branch || !branch.parentId) return;
@@ -59,8 +47,8 @@ export function BranchPreviewPopup() {
           transition={{ type: 'spring', duration: 0.22, bounce: 0.12 }}
           className="fixed z-50 pointer-events-none"
           style={(() => {
-            const POPUP_H = 155;
-            const POPUP_W = 260;
+            const POPUP_H = 100;
+            const POPUP_W = 200;
             const GAP = 8;
             const left = Math.min(Math.max(GAP, previewPopupAnchor.x - POPUP_W / 2), window.innerWidth - POPUP_W - GAP);
             const spaceAbove = previewPopupAnchor.y - GAP;
@@ -76,40 +64,23 @@ export function BranchPreviewPopup() {
             onMouseLeave={scheduleClosePreviewPopup}
           >
             {/* Info section */}
-            <div className="p-3 pb-2">
-              <h3 className="text-sm font-semibold text-ink-primary truncate mb-1.5">
-                {toDisplayName(branch.name)}
-              </h3>
-
-              <p className="text-xs text-ink-secondary leading-relaxed mb-2 line-clamp-2">
-                {branch.description}
-              </p>
-
-              <span className="text-2xs text-ink-muted">
-                Updated {formatRelativeTime(branch.updatedAt)}
-              </span>
-            </div>
-
-            {/* Footer actions */}
-            <div className="border-t border-line flex">
-              <button
-                onClick={handleStartNewVersion}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
-              >
-                <Plus size={12} />
-                Branch off
-              </button>
+            <div className="px-2.5 py-2 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold text-ink-primary truncate">
+                  {toDisplayName(branch.name)}
+                </h3>
+                <span className="text-2xs text-ink-muted">
+                  {formatRelativeTime(branch.updatedAt)}
+                </span>
+              </div>
               {branch.parentId && (
-                <>
-                  <div className="w-px bg-line" />
-                  <button
-                    onClick={handleDelete}
-                    title="Delete this branch"
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-ink-muted hover:text-red-400 hover:bg-surface-2 transition-colors"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </>
+                <button
+                  onClick={handleDelete}
+                  title="Delete"
+                  className="flex-shrink-0 text-ink-muted hover:text-red-400 transition-colors"
+                >
+                  <Trash2 size={11} />
+                </button>
               )}
             </div>
           </div>

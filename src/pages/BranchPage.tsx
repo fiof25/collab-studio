@@ -8,7 +8,6 @@ import { BranchBreadcrumb } from '@/components/ide/BranchBreadcrumb';
 import { BranchActions } from '@/components/ide/BranchActions';
 import { MergeModal } from '@/components/canvas/MergeModal';
 import { CommentsModal } from '@/components/ide/CommentsModal';
-import { Badge } from '@/components/shared/Badge';
 
 export function BranchPage() {
   const { branchId } = useParams<{ branchId: string }>();
@@ -39,7 +38,6 @@ export function BranchPage() {
         left={
           <div className="flex items-center gap-2 min-w-0 ml-2">
             <BranchBreadcrumb branchId={branchId} />
-            <Badge status={branch.status} />
           </div>
         }
         right={<BranchActions branchId={branchId} />}
