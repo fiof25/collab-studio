@@ -83,7 +83,9 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
     scheduleClosePreviewPopup();
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Let React Flow handle shift/meta clicks for multi-select; don't navigate
+    if (e.shiftKey || e.metaKey || e.ctrlKey) return;
     if (wasDraggedRef.current) {
       wasDraggedRef.current = false;
       return;
@@ -127,13 +129,18 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
         {/* Card */}
         <div
           className={clsx(
-            'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-shadow duration-150',
+            'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-all duration-100',
             isArchived && 'opacity-50',
             isBlendTarget ? 'border-accent-pink shadow-glow-pink'
-            : props.selected ? 'border-accent-violet shadow-[0_0_0_2px_rgba(139,92,246,0.25)]'
+            : props.selected ? 'border-accent-violet'
             : 'border-transparent'
           )}
-          style={!isBlendTarget && !props.selected ? { borderColor: 'rgb(var(--node-border))' } : undefined}
+          style={
+            isBlendTarget ? undefined
+            : props.selected
+              ? { borderColor: 'rgb(139 92 246)', boxShadow: '0 0 0 1px rgba(139,92,246,0.9)' }
+              : { borderColor: 'rgb(var(--node-border))' }
+          }
         >
           {/* Snapshot preview */}
           <div

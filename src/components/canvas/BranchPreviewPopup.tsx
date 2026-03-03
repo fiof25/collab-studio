@@ -1,4 +1,3 @@
-import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -15,10 +14,9 @@ export function BranchPreviewPopup() {
   const createBranch = useProjectStore((s) => s.createBranch);
   const getChildBranches = useProjectStore((s) => s.getChildBranches);
   const deleteBranch = useProjectStore((s) => s.deleteBranch);
+  const restoreBranch = useProjectStore((s) => s.restoreBranch);
   const pushToast = useUIStore((s) => s.pushToast);
-
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setLastUndo = useUIStore((s) => s.setLastUndo);
 
   const branch = previewPopupBranchId ? getBranchById(previewPopupBranchId) : null;
 
@@ -33,19 +31,21 @@ export function BranchPreviewPopup() {
   };
 
   const handleDelete = () => {
-    if (!branch) return;
-    const isRoot = !branch.parentId;
-    if (isRoot) return;
-    if (confirmingDelete) {
-      if (confirmTimer.current) clearTimeout(confirmTimer.current);
-      const name = branch.name;
-      deleteBranch(branch.id);
-      closePreviewPopup();
-      pushToast({ type: 'success', message: `"${name}" deleted` });
-    } else {
-      setConfirmingDelete(true);
-      confirmTimer.current = setTimeout(() => setConfirmingDelete(false), 3000);
-    }
+    if (!branch || !branch.parentId) return;
+    const snapshot = { ...branch };
+    deleteBranch(branch.id);
+    closePreviewPopup();
+    const undo = () => {
+      restoreBranch(snapshot);
+      setLastUndo(null);
+    };
+    setLastUndo(undo);
+    pushToast({
+      type: 'success',
+      message: `"${toDisplayName(snapshot.name)}" deleted`,
+      duration: 5000,
+      onUndo: undo,
+    });
   };
 
   return (
@@ -99,20 +99,15 @@ export function BranchPreviewPopup() {
                 <Plus size={12} />
                 Branch off
               </button>
-              {!branch.parentId ? null : (
+              {branch.parentId && (
                 <>
                   <div className="w-px bg-line" />
                   <button
                     onClick={handleDelete}
-                    title={confirmingDelete ? 'Click again to confirm' : 'Delete this branch'}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs transition-colors ${
-                      confirmingDelete
-                        ? 'text-red-400 bg-red-500/10'
-                        : 'text-ink-muted hover:text-red-400 hover:bg-surface-2'
-                    }`}
+                    title="Delete this branch"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-ink-muted hover:text-red-400 hover:bg-surface-2 transition-colors"
                   >
                     <Trash2 size={12} />
-                    {confirmingDelete ? 'Sure?' : ''}
                   </button>
                 </>
               )}

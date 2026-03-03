@@ -65,6 +65,13 @@ html.light {
     box-shadow: none !important;
   }
 
+  /* Rubber-band selection rectangle */
+  .react-flow__selection {
+    border: 1px solid rgba(139, 92, 246, 0.8);
+    background: rgba(139, 92, 246, 0.08);
+    border-radius: 6px;
+  }
+
   .react-flow__controls {
     background: rgb(var(--surface-1));
     border: 1px solid rgb(var(--line));

@@ -37,6 +37,14 @@ function Toast({ toast }: { toast: ToastPayload }) {
     >
       <Icon size={16} className="flex-shrink-0" />
       <p className="text-sm text-ink-primary flex-1">{toast.message}</p>
+      {toast.onUndo && (
+        <button
+          onClick={() => { toast.onUndo!(); dismiss(toast.id); }}
+          className="text-xs font-semibold text-accent-violet hover:opacity-75 transition-opacity flex-shrink-0"
+        >
+          Undo
+        </button>
+      )}
       <button
         onClick={() => dismiss(toast.id)}
         className="text-ink-muted hover:text-ink-primary transition-colors"

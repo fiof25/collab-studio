@@ -12,6 +12,7 @@ interface ProjectStore {
   deleteBranch: (id: string) => void;
   mergeBranches: (sourceId: string, targetId: string) => { source: Branch; target: Branch } | null;
   mergeMultipleBranches: (ids: string[]) => Branch[] | null;
+  restoreBranch: (branch: Branch) => void;
   getBranchById: (id: string) => Branch | undefined;
   getChildBranches: (parentId: string) => Branch[];
   getAncestorChain: (id: string) => Branch[];
@@ -110,6 +111,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     get().updateBranch(sourceId, { status: 'merged' });
     get().updateBranch(targetId, { status: 'merged' });
     return { source, target };
+  },
+
+  restoreBranch: (branch) => {
+    set((s) => ({
+      project: s.project
+        ? { ...s.project, branches: [...s.project.branches, branch] }
+        : null,
+    }));
   },
 
   mergeMultipleBranches: (ids) => {

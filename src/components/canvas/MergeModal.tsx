@@ -224,11 +224,11 @@ export function MergeModal({ variant }: MergeModalProps) {
         <div className="flex gap-2">
           <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
           <Button
-            variant="blend"
+            variant="primary"
             onClick={handleBlend}
             loading={loading}
             disabled={blendBranches.length < 2}
-            className="flex-1"
+            className="flex-1 !bg-ink-primary !text-canvas hover:!opacity-80"
             icon={<Merge size={14} />}
           >
             Blend

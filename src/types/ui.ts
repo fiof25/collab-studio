@@ -11,6 +11,7 @@ export interface ToastPayload {
   type: 'success' | 'error' | 'info' | 'warning';
   message: string;
   duration?: number;
+  onUndo?: () => void;
 }
 
 export interface UIState {
@@ -21,4 +22,5 @@ export interface UIState {
   selectedBranchIds: string[];
   panel: PanelState;
   toasts: ToastPayload[];
+  lastUndo: (() => void) | null;
 }

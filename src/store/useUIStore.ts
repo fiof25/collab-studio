@@ -10,6 +10,7 @@ interface UIStore extends UIState {
   setPanelSide: (side: PanelSide) => void;
   pushToast: (payload: Omit<ToastPayload, 'id'>) => void;
   dismissToast: (id: string) => void;
+  setLastUndo: (fn: (() => void) | null) => void;
   taskPanelOpen: boolean;
   toggleTaskPanel: () => void;
 }
@@ -25,6 +26,7 @@ export const useUIStore = create<UIStore>((set) => ({
     previewVisible: true,
   },
   toasts: [],
+  lastUndo: null,
   taskPanelOpen: false,
 
   openModal: (type, context = {}) =>
@@ -49,6 +51,8 @@ export const useUIStore = create<UIStore>((set) => ({
 
   dismissToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  setLastUndo: (fn) => set({ lastUndo: fn }),
 
   toggleTaskPanel: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
 }));
