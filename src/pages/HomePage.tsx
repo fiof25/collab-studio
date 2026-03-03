@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { GitBranch, Camera, Plus, ChevronRight, Sun, Moon } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useThemeStore } from '@/store/useThemeStore';
-import { useUIStore } from '@/store/useUIStore';
+
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import type { Collaborator } from '@/types/branch';
@@ -189,9 +189,6 @@ function ProjectCard({
       className="rounded-xl overflow-hidden border border-line bg-surface-1 cursor-pointer group hover:border-line-accent transition-all duration-150"
       onClick={() => project.isReal && navigate('/project')}
     >
-      {/* Accent line */}
-      <div className="h-0.5 w-full flex-shrink-0" style={{ background: project.accentColor }} />
-
       {/* Preview */}
       <div className="overflow-hidden bg-white flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
         {preview ? (
@@ -252,7 +249,6 @@ export function HomePage() {
   const navigate = useNavigate();
   const project = useProjectStore((s) => s.project);
   const { theme, toggle } = useThemeStore();
-  const { toggleTeamPanel } = useUIStore();
   const realPreview =
     project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
 
@@ -273,12 +269,6 @@ export function HomePage() {
           </button>
           <button className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors">
             Activity
-          </button>
-          <button
-            onClick={toggleTeamPanel}
-            className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
-          >
-            Team
           </button>
         </nav>
 

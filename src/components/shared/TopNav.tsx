@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GitBranch, ArrowLeft, Sun, Moon, Users, ListTodo } from 'lucide-react';
+import { GitBranch, ArrowLeft, Sun, Moon, ListTodo } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -16,7 +16,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
   const location = useLocation();
   const project = useProjectStore((s) => s.project);
   const { theme, toggle } = useThemeStore();
-  const { teamPanelOpen, toggleTeamPanel, taskPanelOpen, toggleTaskPanel } = useUIStore();
+  const { taskPanelOpen, toggleTaskPanel } = useUIStore();
   const isCanvas = location.pathname === '/project';
 
   return (
@@ -78,21 +78,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         >
           <ListTodo size={14} />
         </button>
-        {/* Team panel toggle */}
-        <button
-          onClick={toggleTeamPanel}
-          title="Team"
-          className={`relative w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-            teamPanelOpen
-              ? 'bg-accent-violet/15 text-accent-violet'
-              : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
-          }`}
-        >
-          <Users size={14} />
-          {!teamPanelOpen && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-accent-violet" />
-          )}
-        </button>
+
         {right}
       </div>
     </header>

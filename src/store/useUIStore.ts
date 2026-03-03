@@ -8,11 +8,8 @@ interface UIStore extends UIState {
   setActiveBranch: (id: string | null) => void;
   setHoveredBranch: (id: string | null) => void;
   setPanelSide: (side: PanelSide) => void;
-  setChatWidth: (pct: number) => void;
   pushToast: (payload: Omit<ToastPayload, 'id'>) => void;
   dismissToast: (id: string) => void;
-  teamPanelOpen: boolean;
-  toggleTeamPanel: () => void;
   taskPanelOpen: boolean;
   toggleTaskPanel: () => void;
 }
@@ -24,12 +21,10 @@ export const useUIStore = create<UIStore>((set) => ({
   hoveredBranchId: null,
   selectedBranchIds: [],
   panel: {
-    activeSide: 'chat',
-    chatWidthPct: 45,
+    activeSide: 'preview',
     previewVisible: true,
   },
   toasts: [],
-  teamPanelOpen: false,
   taskPanelOpen: false,
 
   openModal: (type, context = {}) =>
@@ -44,9 +39,6 @@ export const useUIStore = create<UIStore>((set) => ({
   setPanelSide: (side) =>
     set((s) => ({ panel: { ...s.panel, activeSide: side } })),
 
-  setChatWidth: (pct) =>
-    set((s) => ({ panel: { ...s.panel, chatWidthPct: Math.min(80, Math.max(20, pct)) } })),
-
   pushToast: (payload) => {
     const id = nanoid(6);
     set((s) => ({ toasts: [...s.toasts, { ...payload, id }] }));
@@ -58,6 +50,5 @@ export const useUIStore = create<UIStore>((set) => ({
   dismissToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
-  toggleTeamPanel: () => set((s) => ({ teamPanelOpen: !s.teamPanelOpen })),
   toggleTaskPanel: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
 }));

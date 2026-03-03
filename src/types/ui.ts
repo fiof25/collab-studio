@@ -1,9 +1,8 @@
 export type ModalType = 'merge' | 'newBranch' | 'branchSettings' | 'checkpoint' | 'comments' | null;
-export type PanelSide = 'chat' | 'preview' | 'code';
+export type PanelSide = 'preview' | 'code';
 
 export interface PanelState {
   activeSide: PanelSide;
-  chatWidthPct: number;
   previewVisible: boolean;
 }
 

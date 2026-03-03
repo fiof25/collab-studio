@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
-import { useChatStore } from '@/store/useChatStore';
 import { useUIStore } from '@/store/useUIStore';
-import { mockThreads } from '@/data/mockMessages';
 import { TopNav } from '@/components/shared/TopNav';
 import { IDELayout } from '@/components/ide/IDELayout';
 import { BranchBreadcrumb } from '@/components/ide/BranchBreadcrumb';
@@ -16,7 +14,6 @@ export function BranchPage() {
   const { branchId } = useParams<{ branchId: string }>();
   const navigate = useNavigate();
   const getBranchById = useProjectStore((s) => s.getBranchById);
-  const { ensureThread, addMessage } = useChatStore();
   const pushToast = useUIStore((s) => s.pushToast);
   const setActiveBranch = useUIStore((s) => s.setActiveBranch);
 
@@ -30,16 +27,8 @@ export function BranchPage() {
     }
 
     setActiveBranch(branchId);
-
-    // Load mock messages for this branch if any
-    ensureThread(branchId);
-    const existing = useChatStore.getState().threads[branchId];
-    if (!existing?.messages.length && mockThreads[branchId]) {
-      mockThreads[branchId]!.forEach((msg) => addMessage(branchId, msg));
-    }
-
     return () => setActiveBranch(null);
-  }, [branchId, branch, navigate, pushToast, ensureThread, addMessage, setActiveBranch]);
+  }, [branchId, branch, navigate, pushToast, setActiveBranch]);
 
   if (!branch || !branchId) return null;
 

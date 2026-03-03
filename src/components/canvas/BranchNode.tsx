@@ -133,9 +133,6 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
             isBlendTarget ? 'border-accent-pink shadow-glow-pink' : 'border-line'
           )}
         >
-          {/* Solid color top accent */}
-          <div className="h-0.5 flex-shrink-0" style={{ background: data.color }} />
-
           {/* Snapshot preview */}
           <div
             className="overflow-hidden bg-white flex-shrink-0"
@@ -180,7 +177,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                   }}
                   onClick={(e) => e.stopPropagation()}
                   className="flex-1 text-xs font-medium bg-transparent border-b outline-none text-ink-primary min-w-0"
-                  style={{ borderColor: data.color + '60' }}
+                  style={{ borderColor: 'var(--color-line)' }}
                 />
               ) : (
                 <span className="text-xs font-medium text-ink-primary truncate flex-1">

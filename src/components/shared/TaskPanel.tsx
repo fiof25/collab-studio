@@ -100,7 +100,7 @@ type FilterType = 'all' | 'mine' | 'done';
 const PANEL_W = 272;
 
 export function TaskPanel() {
-  const { taskPanelOpen, toggleTaskPanel, teamPanelOpen } = useUIStore();
+  const { taskPanelOpen, toggleTaskPanel } = useUIStore();
   const [filter, setFilter] = useState<FilterType>('all');
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [newTitle, setNewTitle] = useState('');
@@ -136,8 +136,7 @@ export function TaskPanel() {
     return true;
   });
 
-  // Right offset — slide left if team panel is also open
-  const rightOffset = teamPanelOpen ? PANEL_W + 288 : PANEL_W;
+  const rightOffset = PANEL_W;
 
   const donePct = Math.round((tasks.filter((t) => t.status === 'done').length / tasks.length) * 100);
 
@@ -150,7 +149,7 @@ export function TaskPanel() {
           exit={{ x: rightOffset, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 380, damping: 34 }}
           className="fixed top-12 bottom-0 z-30 flex flex-col bg-surface-1 border-l border-line"
-          style={{ right: teamPanelOpen ? 288 : 0, width: PANEL_W }}
+          style={{ right: 0, width: PANEL_W }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-line flex-shrink-0">
