@@ -45,7 +45,9 @@ export function useChatStream(branchId: string) {
         });
 
         if (!res.ok || !res.body) {
-          throw new Error(`Server error: ${res.status}`);
+          let detail = `${res.status}`;
+          try { detail = (await res.json())?.error ?? detail; } catch {}
+          throw new Error(detail);
         }
 
         const reader = res.body.getReader();
@@ -79,7 +81,7 @@ export function useChatStream(branchId: string) {
         if ((err as Error).name === 'AbortError') {
           fullContent += '\n\n[Stopped]';
         } else {
-          const errMsg = `\n\n[Error: ${(err as Error).message}. Is the server running on port 3001?]`;
+          const errMsg = `\n\n[Error: ${(err as Error).message}]`;
           fullContent += errMsg;
           appendChunk(branchId, assistantMsg.id, errMsg);
         }

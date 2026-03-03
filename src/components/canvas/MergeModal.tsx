@@ -262,7 +262,6 @@ function FeaturePicker({ branches, featureSelections, notes, onToggle, onNoteCha
               className={`flex-1 px-4 py-2.5 flex items-center gap-2${i < branches.length - 1 ? ' border-r border-line' : ''}`}
               style={colStyle}
             >
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: b.color }} />
               <span className="text-xs font-semibold text-ink-primary truncate">{toDisplayName(b.name)}</span>
             </div>
           ))}
@@ -386,7 +385,6 @@ function BranchCard({
       ].join(' ')}
     >
       <div className="flex items-center gap-2">
-        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: branch.color }} />
         <span className="text-xs font-medium text-ink-primary truncate flex-1">
           {toDisplayName(branch.name)}
         </span>

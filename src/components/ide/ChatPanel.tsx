@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { Sparkles, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef } from 'react';
+import { Sparkles } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import { useChatStore } from '@/store/useChatStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -11,11 +12,32 @@ interface ChatPanelProps {
   accentColor: string;
 }
 
-export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
+export function ChatPanel({ branchId }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { threads, isStreaming, clearThread } = useChatStore();
   const { sendMessage, abort } = useChatStream(branchId);
-  const getBranchById = useProjectStore((s) => s.getBranchById);
+  const { getBranchById, updateBranch } = useProjectStore();
+
+  const handleRevert = useCallback(
+    (code: string) => {
+      const branch = getBranchById(branchId);
+      if (!branch) return;
+      updateBranch(branchId, {
+        checkpoints: [
+          ...branch.checkpoints,
+          {
+            id: `ckpt_${nanoid(6)}`,
+            branchId,
+            label: 'Restored version',
+            timestamp: Date.now(),
+            thumbnailUrl: '',
+            codeSnapshot: code,
+          },
+        ],
+      });
+    },
+    [branchId, getBranchById, updateBranch]
+  );
 
   const messages = threads[branchId] ?? [];
   const branch = getBranchById(branchId);
@@ -27,40 +49,26 @@ export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
 
   return (
     <div className="flex flex-col w-[420px] flex-shrink-0 h-full bg-surface-1 border-r border-line">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-line flex-shrink-0 h-10">
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-ink-muted" />
-          <span className="text-sm font-semibold text-ink-primary">Vibe Chat</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-3 text-ink-muted border border-line">
-            gemini-2.0-flash
-          </span>
-        </div>
-
-        {messages.length > 0 && (
-          <button
-            onClick={() => clearThread(branchId)}
-            disabled={isStreaming}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-secondary hover:bg-surface-2 transition-colors disabled:opacity-40"
-            title="Clear thread"
-          >
-            <Trash2 size={12} />
-          </button>
-        )}
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 scroll-smooth">
         {messages.length === 0 ? (
           <EmptyState branchName={branch?.name} />
         ) : (
-          messages.map((msg) => (
-            <ChatMessage
-              key={msg.id}
-              message={msg}
-              isLastAssistant={msg.id === lastAssistantId}
-            />
-          ))
+          messages.map((msg, i) => {
+            const revertCode =
+              msg.role === 'user'
+                ? messages.slice(i + 1).find((m) => m.role === 'assistant' && m.codeGenerated)?.codeGenerated
+                : undefined;
+            return (
+              <ChatMessage
+                key={msg.id}
+                message={msg}
+                isLastAssistant={msg.id === lastAssistantId}
+                onRevert={handleRevert}
+                revertCode={revertCode}
+              />
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>
@@ -70,6 +78,7 @@ export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
         onSend={sendMessage}
         onStop={abort}
         isStreaming={isStreaming}
+        onClear={messages.length > 0 ? () => clearThread(branchId) : undefined}
       />
     </div>
   );

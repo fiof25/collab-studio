@@ -203,7 +203,7 @@ function FlowInner() {
           >
             <button
               onClick={handleBlendSelected}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface-1 border border-line shadow-xl text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface-1 border border-line shadow-xl text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
             >
               <Merge size={13} />
               Blend

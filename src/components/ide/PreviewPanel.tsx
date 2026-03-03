@@ -30,6 +30,11 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
   const branch = getBranchById(branchId);
   const latestCode = branch?.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '';
 
+  // Auto-refresh preview whenever new code is generated
+  useEffect(() => {
+    setRefreshKey((k) => k + 1);
+  }, [latestCode]);
+
   useEffect(() => {
     setPanelSide(activeTab === 'code' ? 'code' : 'preview');
   }, [activeTab, setPanelSide]);
