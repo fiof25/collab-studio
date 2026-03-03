@@ -24,7 +24,6 @@ import { useUIStore } from '@/store/useUIStore';
 import { BranchNode } from './BranchNode';
 import { BranchEdge } from './BranchEdge';
 
-import { BranchPreviewPopup } from './BranchPreviewPopup';
 
 const nodeTypes: NodeTypes = { branchNode: BranchNode as NodeTypes[string] };
 const edgeTypes: EdgeTypes = { branchEdge: BranchEdge as EdgeTypes[string] };
@@ -184,8 +183,6 @@ function FlowInner() {
 
 
       </ReactFlow>
-      <BranchPreviewPopup />
-
       {/* Multi-select blend bar — floats at the center of the selection */}
       <AnimatePresence>
         {blendBarPos && (

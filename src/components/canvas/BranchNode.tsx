@@ -2,7 +2,7 @@ import { memo, useRef, useEffect, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Pencil, Merge } from 'lucide-react';
+import { Camera, Pencil, Merge, GitBranch, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -12,17 +12,12 @@ import { toDisplayName } from '@/utils/branchUtils';
 import type { BranchNodeData } from '@/types/canvas';
 const NODE_W = 240;
 const PREVIEW_H = 138;
-const CHIP_PAD = 0;
-
-let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const BranchNode = memo(function BranchNode(props: NodeProps) {
   const data = props.data as BranchNodeData;
   const navigate = useNavigate();
-  const nodeRef = useRef<HTMLDivElement>(null);
-  const openPreviewPopup = useCanvasStore((s) => s.openPreviewPopup);
   const closePreviewPopup = useCanvasStore((s) => s.closePreviewPopup);
-  const scheduleClosePreviewPopup = useCanvasStore((s) => s.scheduleClosePreviewPopup);
+  const deleteBranch = useProjectStore((s) => s.deleteBranch);
   const blendTargetId = useCanvasStore((s) => s.blendTargetId);
   const isBlendTarget = blendTargetId === data.branchId;
   const createBranch = useProjectStore((s) => s.createBranch);
@@ -57,20 +52,6 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
     setRenaming(false);
   };
 
-  const handleMouseEnter = () => {
-    hoverTimer = setTimeout(() => {
-      const rect = nodeRef.current?.getBoundingClientRect();
-      if (rect) {
-        openPreviewPopup(data.branchId, { x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom - CHIP_PAD });
-      }
-    }, 350);
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimer) clearTimeout(hoverTimer);
-    // Schedule instead of immediate close — gives the cursor time to reach the popup
-    scheduleClosePreviewPopup();
-  };
 
   const handleClick = (e: React.MouseEvent) => {
     // Let React Flow handle shift/meta clicks for multi-select; don't navigate
@@ -105,14 +86,11 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
       />
 
       <motion.div
-        ref={nodeRef}
         layoutId={`branch-card-${data.branchId}`}
         whileHover={props.dragging ? {} : { scale: 1.02, y: -2 }}
         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
         className="cursor-pointer select-none group relative"
         style={{ width: NODE_W }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
         {/* Card */}
@@ -176,14 +154,9 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                   style={{ borderColor: 'var(--color-line)' }}
                 />
               ) : (
-                <span className="text-xs font-medium text-ink-primary truncate flex-1">
-                  {toDisplayName(data.name)}
-                </span>
-              )}
-              {!renaming && (
                 <>
-                  <span className="text-2xs text-ink-muted flex-shrink-0">
-                    {formatRelativeTime(data.updatedAt)}
+                  <span className="text-xs font-medium text-ink-primary truncate min-w-0">
+                    {toDisplayName(data.name)}
                   </span>
                   <button
                     onClick={startRename}
@@ -194,6 +167,11 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                   </button>
                 </>
               )}
+              {!renaming && (
+                <span className="text-2xs text-ink-muted flex-shrink-0 ml-auto">
+                  {formatRelativeTime(data.updatedAt)}
+                </span>
+              )}
             </div>
 
             {/* Description */}
@@ -201,6 +179,25 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
               {data.description ?? ''}
             </p>
           </div>
+        </div>
+
+        {/* Hover action bar */}
+        <div className="absolute -bottom-8 left-0 right-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={handleStartNewVersion}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-ink-muted hover:text-ink-primary hover:bg-surface-3 transition-colors text-xs"
+            title="New version"
+          >
+            <GitBranch size={11} />
+            New version
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteBranch(data.branchId); }}
+            className="w-6 h-6 flex items-center justify-center rounded-lg bg-surface-2 border border-line text-ink-muted hover:text-red-400 hover:bg-surface-3 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={11} />
+          </button>
         </div>
 
         {/* Blend target overlay */}
