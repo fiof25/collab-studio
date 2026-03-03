@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GitBranch, MessageCircle, Trash2 } from 'lucide-react';
-import { Button } from '@/components/shared/Button';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { nanoid } from 'nanoid';
@@ -54,27 +53,41 @@ export function BranchActions({ branchId }: BranchActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Button variant="ghost" size="sm" icon={<MessageCircle size={13} />} onClick={handleComments} title="Comments" className="!px-0 w-8 h-8" />
-      <Button variant="ghost" size="sm" onClick={handleCheckpoint}>
+    <div className="flex items-center gap-3">
+      <button
+        onClick={handleComments}
+        title="Comments"
+        className="flex items-center justify-center w-8 h-8 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+      >
+        <MessageCircle size={15} />
+      </button>
+
+      <button
+        onClick={handleCheckpoint}
+        className="text-sm text-ink-muted hover:text-ink-primary transition-colors font-medium"
+      >
         Save
-      </Button>
-      <Button variant="ghost" size="sm" icon={<GitBranch size={13} />} onClick={handleFork}>
+      </button>
+
+      <button
+        onClick={handleFork}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
+      >
+        <GitBranch size={15} />
         New version
-      </Button>
+      </button>
 
       {!isRoot && (
         <button
           onClick={handleDelete}
           title={confirmingDelete ? 'Click again to confirm' : 'Delete this version'}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm font-medium transition-all border ${
+          className={`flex items-center justify-center w-8 h-8 rounded-xl transition-colors ${
             confirmingDelete
-              ? 'border-red-500/60 text-red-400 bg-red-500/10'
-              : 'border-line text-ink-muted hover:border-red-500/40 hover:text-red-400'
+              ? 'text-red-400 bg-red-500/10'
+              : 'text-ink-muted hover:text-red-400 hover:bg-surface-2'
           }`}
         >
-          <Trash2 size={13} />
-          {confirmingDelete ? 'Confirm?' : ''}
+          <Trash2 size={14} />
         </button>
       )}
     </div>

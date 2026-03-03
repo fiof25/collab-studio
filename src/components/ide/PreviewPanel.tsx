@@ -36,11 +36,9 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const setPanelSide = useUIStore((s) => s.setPanelSide);
-  const getBranchById = useProjectStore((s) => s.getBranchById);
+  const branch = useProjectStore((s) => s.project?.branches.find((b) => b.id === branchId));
   const addComment = useProjectStore((s) => s.addComment);
   const addReply = useProjectStore((s) => s.addReply);
-
-  const branch = getBranchById(branchId);
   const latestCode = branch?.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '';
   const pinnedComments = (branch?.comments ?? []).filter((c) => c.x !== undefined && c.y !== undefined);
 

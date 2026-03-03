@@ -24,7 +24,17 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
   const getChildBranches = useProjectStore((s) => s.getChildBranches);
   const pushToast = useUIStore((s) => s.pushToast);
   const updateBranch = useProjectStore((s) => s.updateBranch);
+  const getBranchById = useProjectStore((s) => s.getBranchById);
   const isArchived = data.status === 'archived';
+
+  // Unique commenters (open comments only)
+  const openComments = getBranchById(data.branchId)?.comments.filter((c) => !c.resolved) ?? [];
+  const uniqueCommenters = openComments.reduce<{ id: string; name: string; avatarUrl: string; color: string }[]>((acc, c) => {
+    if (!acc.find((a) => a.id === c.authorId)) {
+      acc.push({ id: c.authorId, name: c.authorName, avatarUrl: c.authorAvatarUrl, color: c.authorColor });
+    }
+    return acc;
+  }, []);
   const wasDraggedRef = useRef(false);
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
@@ -96,7 +106,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
         {/* Card */}
         <div
           className={clsx(
-            'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-all duration-100',
+            'rounded-xl overflow-hidden bg-surface-1 border flex flex-col transition-all duration-100 relative',
             isArchived && 'opacity-50',
             props.selected || isBlendTarget ? 'border-accent-violet'
             : 'border-transparent'
@@ -178,6 +188,34 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
             <p className="text-2xs text-ink-secondary line-clamp-2">
               {data.description ?? ''}
             </p>
+
+            {/* Comment notification */}
+            {uniqueCommenters.length > 0 && (
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <div className="flex">
+                  {uniqueCommenters.slice(0, 3).map((commenter, i) => (
+                    <div
+                      key={commenter.id}
+                      className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0 border border-surface-1"
+                      style={{ marginLeft: i === 0 ? 0 : -5, zIndex: uniqueCommenters.length - i, borderColor: commenter.color, borderWidth: 1.5 }}
+                    >
+                      <img src={commenter.avatarUrl} alt={commenter.name} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {uniqueCommenters.length > 3 && (
+                    <div
+                      className="w-4 h-4 rounded-full bg-surface-3 border border-line flex items-center justify-center flex-shrink-0 text-[7px] font-bold text-ink-muted"
+                      style={{ marginLeft: -5 }}
+                    >
+                      +{uniqueCommenters.length - 3}
+                    </div>
+                  )}
+                </div>
+                <span className="text-[9px] text-ink-muted">
+                  {openComments.length} comment{openComments.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

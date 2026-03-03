@@ -25,7 +25,7 @@ export function useBranchTree(): {
         codeSnapshot: branch.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '',
         collaborators: branch.collaborators,
         checkpointCount: branch.checkpoints.length,
-        commentCount: branch.comments.length,
+        commentCount: branch.comments.filter((c) => !c.resolved).length,
         updatedAt: branch.updatedAt,
         isRoot: branch.id === rootBranchId,
       },

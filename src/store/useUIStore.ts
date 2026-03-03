@@ -15,6 +15,8 @@ interface UIStore extends UIState {
   toggleTaskPanel: () => void;
   commentsPanelOpen: boolean;
   toggleCommentsPanel: () => void;
+  globalCommentsPanelOpen: boolean;
+  toggleGlobalCommentsPanel: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -31,6 +33,7 @@ export const useUIStore = create<UIStore>((set) => ({
   lastUndo: null,
   taskPanelOpen: false,
   commentsPanelOpen: false,
+  globalCommentsPanelOpen: false,
 
   openModal: (type, context = {}) =>
     set({ activeModal: type, modalContext: context }),
@@ -59,4 +62,5 @@ export const useUIStore = create<UIStore>((set) => ({
 
   toggleTaskPanel: () => set((s) => ({ taskPanelOpen: !s.taskPanelOpen })),
   toggleCommentsPanel: () => set((s) => ({ commentsPanelOpen: !s.commentsPanelOpen })),
+  toggleGlobalCommentsPanel: () => set((s) => ({ globalCommentsPanelOpen: !s.globalCommentsPanelOpen })),
 }));
