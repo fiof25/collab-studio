@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -201,6 +202,36 @@ function ProjectCard({
   );
 }
 
+// ─── Activity List ────────────────────────────────────────────────────────────
+
+function ActivityList({ limit }: { limit?: number }) {
+  const items = limit ? ACTIVITIES.slice(0, limit) : ACTIVITIES;
+  return (
+    <div className="border border-line rounded-xl overflow-hidden">
+      {items.map((item, i) => (
+        <div
+          key={item.id}
+          className={`flex items-center gap-2.5 px-3 py-2 bg-surface-1 hover:bg-surface-2 transition-colors ${
+            i < items.length - 1 ? 'border-b border-line' : ''
+          }`}
+        >
+          <Avatar collaborator={item.actor} size="xs" />
+          <p className="flex-1 min-w-0 text-xs text-ink-secondary truncate">
+            <span className="font-medium text-ink-primary">
+              {item.actor.name.split(' ')[0]}
+            </span>{' '}
+            {item.verb}{' '}
+            <span className="font-medium text-ink-primary">{item.target}</span>
+          </p>
+          <span className="text-2xs text-ink-muted flex-shrink-0">
+            {formatRelativeTime(item.timestamp)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function HomePage() {
@@ -208,6 +239,7 @@ export function HomePage() {
   const project = useProjectStore((s) => s.project);
   const realPreview =
     project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
+  const [activeTab, setActiveTab] = useState<'projects' | 'activity'>('projects');
 
   return (
     <div className="flex flex-col h-full bg-canvas">
@@ -218,12 +250,19 @@ export function HomePage() {
         </div>
 
         <nav className="flex items-center gap-0.5 text-xs">
-          <button className="px-3 py-1.5 rounded-lg text-ink-primary font-medium bg-surface-2">
-            Projects
-          </button>
-          <button className="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors">
-            Activity
-          </button>
+          {(['projects', 'activity'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-lg font-medium capitalize transition-colors ${
+                activeTab === tab
+                  ? 'text-ink-primary bg-surface-2'
+                  : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -295,54 +334,40 @@ export function HomePage() {
           {/* ── Right Content ── */}
           <div className="flex flex-col gap-8 min-w-0">
 
-            {/* Projects */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
-                <button
-                  onClick={() => navigate('/project')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
-                >
-                  <Plus size={14} />
-                  New project
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 gap-3">
-                {MOCK_PROJECTS.map((p) => (
-                  <ProjectCard key={p.id} project={p} realPreview={realPreview} />
-                ))}
-              </div>
-            </section>
-
-            {/* Activity */}
-            <section>
-              <h3 className="text-sm font-semibold text-ink-primary mb-4">Activity</h3>
-              <div className="border border-line rounded-xl overflow-hidden">
-                {ACTIVITIES.map((item, i) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-2.5 px-3 py-2 bg-surface-1 hover:bg-surface-2 transition-colors ${
-                      i < ACTIVITIES.length - 1 ? 'border-b border-line' : ''
-                    }`}
-                  >
-                    <Avatar collaborator={item.actor} size="xs" />
-                    <p className="flex-1 min-w-0 text-xs text-ink-secondary truncate">
-                      <span className="font-medium text-ink-primary">
-                        {item.actor.name.split(' ')[0]}
-                      </span>{' '}
-                      {item.verb}{' '}
-                      <span className="font-medium text-ink-primary">
-                        {item.target}
-                      </span>
-                    </p>
-                    <span className="text-2xs text-ink-muted flex-shrink-0">
-                      {formatRelativeTime(item.timestamp)}
-                    </span>
+            {activeTab === 'projects' ? (
+              <>
+                {/* Projects */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
+                    <button
+                      onClick={() => navigate('/project')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
+                    >
+                      <Plus size={14} />
+                      New project
+                    </button>
                   </div>
-                ))}
-              </div>
-            </section>
+                  <div className="grid grid-cols-4 gap-3">
+                    {MOCK_PROJECTS.map((p) => (
+                      <ProjectCard key={p.id} project={p} realPreview={realPreview} />
+                    ))}
+                  </div>
+                </section>
+
+                {/* Activity preview */}
+                <section>
+                  <h3 className="text-sm font-semibold text-ink-primary mb-4">Recent Activity</h3>
+                  <ActivityList limit={5} />
+                </section>
+              </>
+            ) : (
+              /* Full activity feed */
+              <section>
+                <h3 className="text-sm font-semibold text-ink-primary mb-4">All Activity</h3>
+                <ActivityList />
+              </section>
+            )}
 
           </div>
         </div>

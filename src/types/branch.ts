@@ -1,5 +1,14 @@
 export type BranchStatus = 'active' | 'archived' | 'merging' | 'merged';
 
+export interface CommentReply {
+  id: string;
+  authorName: string;
+  authorAvatarUrl: string;
+  authorColor: string;
+  content: string;
+  timestamp: number;
+}
+
 export interface Comment {
   id: string;
   branchId: string;
@@ -9,6 +18,10 @@ export interface Comment {
   authorColor: string;
   content: string;
   timestamp: number;
+  x?: number; // % from left of preview
+  y?: number; // % from top of preview
+  resolved?: boolean;
+  replies?: CommentReply[];
 }
 
 export interface Collaborator {

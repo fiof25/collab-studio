@@ -12,7 +12,7 @@ interface BranchActionsProps {
 
 export function BranchActions({ branchId }: BranchActionsProps) {
   const navigate = useNavigate();
-  const openModal = useUIStore((s) => s.openModal);
+  const toggleCommentsPanel = useUIStore((s) => s.toggleCommentsPanel);
   const pushToast = useUIStore((s) => s.pushToast);
   const { getBranchById, updateBranch, deleteBranch } = useProjectStore();
 
@@ -22,8 +22,9 @@ export function BranchActions({ branchId }: BranchActionsProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const openModal = useUIStore((s) => s.openModal);
   const handleFork = () => openModal('newBranch', { parentId: branchId });
-  const handleComments = () => openModal('comments', { branchId });
+  const handleComments = () => toggleCommentsPanel();
 
   const handleCheckpoint = () => {
     if (!branch) return;

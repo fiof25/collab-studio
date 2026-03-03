@@ -7,7 +7,7 @@ import { IDELayout } from '@/components/ide/IDELayout';
 import { BranchBreadcrumb } from '@/components/ide/BranchBreadcrumb';
 import { BranchActions } from '@/components/ide/BranchActions';
 import { MergeModal } from '@/components/canvas/MergeModal';
-import { CommentsModal } from '@/components/ide/CommentsModal';
+import { CommentsPanel } from '@/components/ide/CommentsPanel';
 
 export function BranchPage() {
   const { branchId } = useParams<{ branchId: string }>();
@@ -48,7 +48,7 @@ export function BranchPage() {
       {/* Modals */}
       <MergeModal variant="merge" />
       <MergeModal variant="newBranch" />
-      <CommentsModal branchId={branchId} />
+      <CommentsPanel branchId={branchId} />
     </div>
   );
 }

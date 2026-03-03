@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
-import type { Branch, Comment, Project } from '@/types/branch';
+import type { Branch, Comment, CommentReply, Project } from '@/types/branch';
 import { branchColorFromId } from '@/utils/colorUtils';
 import { computeTreeLayout } from '@/utils/branchUtils';
 
@@ -16,7 +16,9 @@ interface ProjectStore {
   getBranchById: (id: string) => Branch | undefined;
   getChildBranches: (parentId: string) => Branch[];
   getAncestorChain: (id: string) => Branch[];
-  addComment: (branchId: string, content: string, author: { id: string; name: string; avatarUrl: string; color: string }) => Comment;
+  addComment: (branchId: string, content: string, author: { id: string; name: string; avatarUrl: string; color: string }, pos?: { x: number; y: number }) => Comment;
+  resolveComment: (branchId: string, commentId: string) => void;
+  addReply: (branchId: string, commentId: string, content: string, author: { name: string; avatarUrl: string; color: string }) => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -152,7 +154,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     return chain;
   },
 
-  addComment: (branchId, content, author) => {
+  addComment: (branchId, content, author, pos) => {
     const comment: Comment = {
       id: `cmt_${nanoid(8)}`,
       branchId,
@@ -162,6 +164,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       authorColor: author.color,
       content: content.trim(),
       timestamp: Date.now(),
+      ...(pos ?? {}),
     };
     set((s) => ({
       project: s.project
@@ -176,5 +179,39 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         : null,
     }));
     return comment;
+  },
+
+  resolveComment: (branchId, commentId) => {
+    set((s) => ({
+      project: s.project ? {
+        ...s.project,
+        branches: s.project.branches.map((b) =>
+          b.id === branchId
+            ? { ...b, comments: b.comments.map((c) => c.id === commentId ? { ...c, resolved: !c.resolved } : c) }
+            : b
+        ),
+      } : null,
+    }));
+  },
+
+  addReply: (branchId, commentId, content, author) => {
+    const reply: CommentReply = {
+      id: `reply_${nanoid(8)}`,
+      authorName: author.name,
+      authorAvatarUrl: author.avatarUrl,
+      authorColor: author.color,
+      content: content.trim(),
+      timestamp: Date.now(),
+    };
+    set((s) => ({
+      project: s.project ? {
+        ...s.project,
+        branches: s.project.branches.map((b) =>
+          b.id === branchId
+            ? { ...b, comments: b.comments.map((c) => c.id === commentId ? { ...c, replies: [...(c.replies ?? []), reply] } : c) }
+            : b
+        ),
+      } : null,
+    }));
   },
 }));

@@ -11,7 +11,7 @@ import { formatRelativeTime } from '@/utils/dateUtils';
 const DEMO_AUTHOR = {
   id: 'user_alice',
   name: 'Alice Kim',
-  avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=alice&backgroundColor=b6e3f4',
+  avatarUrl: '/catpfp.jpg',
   color: '#8B5CF6',
 };
 
