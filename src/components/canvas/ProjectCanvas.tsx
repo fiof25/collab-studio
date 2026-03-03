@@ -3,7 +3,7 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  MiniMap,
+
   useReactFlow,
   useNodesState,
   ReactFlowProvider,
@@ -19,7 +19,7 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { useUIStore } from '@/store/useUIStore';
 import { BranchNode } from './BranchNode';
 import { BranchEdge } from './BranchEdge';
-import { CanvasToolbar } from './CanvasToolbar';
+
 import { BranchPreviewPopup } from './BranchPreviewPopup';
 
 const nodeTypes: NodeTypes = { branchNode: BranchNode as NodeTypes[string] };
@@ -147,17 +147,8 @@ function FlowInner() {
           gap={28}
           size={1.5}
         />
-        <MiniMap
-          nodeColor={(n) => {
-            const data = n.data as { color?: string };
-            return data?.color ?? '#8B5CF6';
-          }}
-          maskColor="rgba(13,13,18,0.85)"
-          style={{ bottom: 16, right: 16, borderRadius: 12 }}
-          pannable
-          zoomable
-        />
-        <CanvasToolbar />
+
+
       </ReactFlow>
       <BranchPreviewPopup />
     </div>
