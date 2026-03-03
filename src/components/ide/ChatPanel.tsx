@@ -28,11 +28,11 @@ export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
   return (
     <div className="flex flex-col w-[420px] flex-shrink-0 h-full bg-surface-1 border-r border-line">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-line flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-line flex-shrink-0 h-10">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-violet-400" />
+          <Sparkles size={14} className="text-ink-muted" />
           <span className="text-sm font-semibold text-ink-primary">Vibe Chat</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-3 text-ink-muted border border-line">
             gemini-2.0-flash
           </span>
         </div>
@@ -77,10 +77,8 @@ export function ChatPanel({ branchId, accentColor }: ChatPanelProps) {
 
 function EmptyState({ branchName }: { branchName?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-violet-500/20 flex items-center justify-center">
-        <Sparkles size={20} className="text-violet-400" />
-      </div>
+    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+      <Sparkles size={20} className="text-ink-muted" />
       <div>
         <p className="text-sm font-medium text-ink-secondary mb-1">
           {branchName ? `Vibe coding on "${branchName}"` : 'Start vibe coding'}

@@ -20,23 +20,6 @@
   --node-border:   62 62 92;
 }
 
-/* ─── Light mode overrides ────────────────────────────────────────────────── */
-html.light {
-  --canvas:        246 245 248;
-  --canvas-subtle: 241 240 244;
-  --surface-0:     246 245 248;
-  --surface-1:     255 255 255;
-  --surface-2:     242 242 252;
-  --surface-3:     230 230 244;
-  --surface-4:     218 218 236;
-  --ink-primary:   14 14 26;
-  --ink-secondary: 58 58 82;
-  --ink-muted:     120 120 160;
-  --line:          214 214 230;
-  --line-subtle:   226 226 240;
-  --edge-color:    rgba(0, 0, 0, 0.35);
-  --node-border:   185 185 210;
-}
 
 @layer base {
   *, *::before, *::after {

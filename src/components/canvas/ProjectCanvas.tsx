@@ -20,7 +20,6 @@ import { useBranchTree } from '@/hooks/useBranchTree';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useUIStore } from '@/store/useUIStore';
-import { useThemeStore } from '@/store/useThemeStore';
 import { BranchNode } from './BranchNode';
 import { BranchEdge } from './BranchEdge';
 
@@ -39,7 +38,6 @@ function getCenter(pos: { x: number; y: number }) {
 
 function FlowInner() {
   const { nodes: storeNodes, edges } = useBranchTree();
-  const { theme } = useThemeStore();
   const updateBranch = useProjectStore((s) => s.updateBranch);
   const openModal = useUIStore((s) => s.openModal);
   const { fitViewTrigger, setViewport, blendTargetId, setBlendTarget } = useCanvasStore();
@@ -178,7 +176,7 @@ function FlowInner() {
       >
         <Background
           variant={BackgroundVariant.Dots}
-          color={theme === 'dark' ? '#2E2E45' : '#C4C4D8'}
+          color="#2E2E45"
           gap={28}
           size={1.5}
         />

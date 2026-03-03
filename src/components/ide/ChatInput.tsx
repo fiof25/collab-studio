@@ -75,7 +75,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
           disabled={isStreaming || disabled}
           className={clsx(
             'flex-1 resize-none bg-surface-2 border border-line rounded-xl px-3 py-2.5 text-sm text-ink-primary placeholder:text-ink-muted outline-none transition-colors min-h-[40px]',
-            'focus:border-violet-500/50 focus:bg-surface-3',
+            'focus:border-white/30 focus:bg-surface-3',
             (isStreaming || disabled) && 'opacity-50 cursor-not-allowed'
           )}
         />
@@ -95,7 +95,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled }: ChatInputPr
             className={clsx(
               'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors',
               value.trim() && !disabled
-                ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                ? 'bg-white hover:bg-white/90 text-surface-0'
                 : 'bg-surface-2 text-ink-muted cursor-not-allowed'
             )}
             title="Send (Enter)"

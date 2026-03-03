@@ -124,7 +124,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           )}
           style={
             props.selected || isBlendTarget
-              ? { borderColor: 'rgb(139 92 246)', boxShadow: '0 0 0 1px rgba(139,92,246,0.9)' }
+              ? { borderColor: 'rgb(139 92 246)' }
               : { borderColor: 'rgb(var(--node-border))' }
           }
         >
@@ -158,7 +158,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           {/* Info strip */}
           <div className="px-2.5 pt-1.5 pb-2 border-t border-line flex flex-col gap-1">
             {/* Name row */}
-            <div className="flex items-center gap-1.5 group/name">
+            <div className="flex items-baseline gap-1.5 group/name">
               {renaming ? (
                 <input
                   ref={renameInputRef}
@@ -180,25 +180,25 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                 </span>
               )}
               {!renaming && (
-                <button
-                  onClick={startRename}
-                  className="opacity-0 group-hover/name:opacity-60 hover:!opacity-100 text-ink-muted transition-opacity flex-shrink-0"
-                  title="Rename"
-                >
-                  <Pencil size={9} />
-                </button>
+                <>
+                  <span className="text-2xs text-ink-muted flex-shrink-0">
+                    {formatRelativeTime(data.updatedAt)}
+                  </span>
+                  <button
+                    onClick={startRename}
+                    className="opacity-0 group-hover/name:opacity-60 hover:!opacity-100 text-ink-muted transition-opacity flex-shrink-0"
+                    title="Rename"
+                  >
+                    <Pencil size={9} />
+                  </button>
+                </>
               )}
             </div>
 
-            {/* Description + time on one row */}
-            <div className="flex items-center gap-2">
-              <p className="text-2xs text-ink-secondary truncate flex-1">
-                {data.description ?? ''}
-              </p>
-              <span className="text-2xs text-ink-muted flex-shrink-0">
-                {formatRelativeTime(data.updatedAt)}
-              </span>
-            </div>
+            {/* Description */}
+            <p className="text-2xs text-ink-secondary line-clamp-2">
+              {data.description ?? ''}
+            </p>
           </div>
         </div>
 

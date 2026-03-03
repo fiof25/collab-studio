@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, Camera, Plus, ChevronRight, Sun, Moon } from 'lucide-react';
+import { GitBranch, Camera, Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
-import { useThemeStore } from '@/store/useThemeStore';
 
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
@@ -249,7 +248,6 @@ function ProjectCard({
 export function HomePage() {
   const navigate = useNavigate();
   const project = useProjectStore((s) => s.project);
-  const { theme, toggle } = useThemeStore();
   const realPreview =
     project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
 
@@ -271,13 +269,6 @@ export function HomePage() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggle}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
           <Avatar collaborator={alice} size="sm" />
         </div>
       </header>

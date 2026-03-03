@@ -41,7 +41,7 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full bg-surface-1">
       {/* Tab bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-line flex-shrink-0">
+      <div className="flex items-center justify-between px-3 border-b border-line flex-shrink-0 h-10">
         <div className="flex items-center gap-1">
           {(['preview', 'code'] as ActiveTab[]).map((tab) => (
             <button
