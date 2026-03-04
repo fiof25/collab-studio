@@ -9,12 +9,12 @@ import { toDisplayName } from '@/utils/branchUtils';
 import type { Branch } from '@/types/branch';
 
 interface MergeModalProps {
-  variant: 'merge' | 'newBranch';
+  variant: 'merge' | 'newBranch' | 'newDraft';
 }
 
 export function MergeModal({ variant }: MergeModalProps) {
   const { activeModal, closeModal, modalContext } = useUIStore();
-  const { project, mergeBranches, mergeMultipleBranches, createBranch } = useProjectStore();
+  const { project, mergeBranches, mergeMultipleBranches, createBranch, createRootBranch } = useProjectStore();
   const pushToast = useUIStore((s) => s.pushToast);
 
   // newBranch state
@@ -51,7 +51,11 @@ export function MergeModal({ variant }: MergeModalProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModal]);
 
-  const open = variant === 'merge' ? activeModal === 'merge' : activeModal === 'newBranch';
+  const open = variant === 'merge'
+    ? activeModal === 'merge'
+    : variant === 'newDraft'
+    ? activeModal === 'newDraft'
+    : activeModal === 'newBranch';
   const branches = project?.branches ?? [];
   const activeBranches = branches.filter((b) => b.status === 'active' || b.status === 'merging');
 
@@ -117,6 +121,55 @@ export function MergeModal({ variant }: MergeModalProps) {
       setLoading(false);
     }, 600);
   };
+
+  // ── New Draft variant ───────────────────────────────────────────────────────
+
+  if (variant === 'newDraft') {
+    const handleCreateDraft = () => {
+      if (!newName.trim()) return;
+      setLoading(true);
+      setTimeout(() => {
+        createRootBranch(newName.trim(), 'New draft');
+        pushToast({ type: 'success', message: `"${newName.trim()}" created` });
+        closeModal();
+        setLoading(false);
+      }, 600);
+    };
+
+    return (
+      <Modal open={open} onClose={closeModal} title="New draft" size="sm">
+        <div className="space-y-4">
+          <p className="text-xs text-ink-muted leading-relaxed">
+            Start a completely fresh draft — not branched from anything.
+          </p>
+          <div>
+            <label className="text-xs text-ink-muted mb-1.5 block">Draft name</label>
+            <input
+              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
+              placeholder="my-new-draft"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateDraft()}
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateDraft}
+              loading={loading}
+              disabled={!newName.trim()}
+              className="flex-1"
+              icon={<GitBranch size={14} />}
+            >
+              Create draft
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   // ── New Branch variant ──────────────────────────────────────────────────────
 

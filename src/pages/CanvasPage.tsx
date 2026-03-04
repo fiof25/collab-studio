@@ -39,11 +39,11 @@ export function CanvasPage() {
             </button>
 
             <button
-              onClick={() => openModal('newBranch')}
+              onClick={() => openModal('newDraft')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
             >
               <Plus size={15} />
-              Add new version
+              New draft
             </button>
           </div>
         }
@@ -56,6 +56,7 @@ export function CanvasPage() {
       {/* Modals */}
       <MergeModal variant="merge" />
       <MergeModal variant="newBranch" />
+      <MergeModal variant="newDraft" />
       <GlobalCommentsPanel />
     </div>
   );

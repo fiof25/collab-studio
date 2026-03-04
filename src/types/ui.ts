@@ -1,4 +1,4 @@
-export type ModalType = 'merge' | 'newBranch' | 'branchSettings' | 'checkpoint' | 'comments' | null;
+export type ModalType = 'merge' | 'newBranch' | 'newDraft' | 'branchSettings' | 'checkpoint' | 'comments' | null;
 export type PanelSide = 'preview' | 'code';
 
 export interface PanelState {

@@ -8,6 +8,7 @@ interface ProjectStore {
   project: Project | null;
   loadProject: (project: Project) => void;
   createBranch: (parentId: string, name: string, description: string) => Branch;
+  createRootBranch: (name: string, description: string) => Branch;
   updateBranch: (id: string, patch: Partial<Branch>) => void;
   deleteBranch: (id: string) => void;
   mergeBranches: (sourceId: string, targetId: string) => { source: Branch; target: Branch } | null;
@@ -67,6 +68,42 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       checkpoints: latestCheckpoint
         ? [{ ...latestCheckpoint, id: `ckpt_${nanoid(6)}`, branchId: newId, label: 'Branched off from ' + parent?.name }]
         : [],
+      comments: [],
+    };
+
+    set((s) => ({
+      project: s.project
+        ? { ...s.project, branches: [...s.project.branches, newBranch] }
+        : null,
+    }));
+
+    return newBranch;
+  },
+
+  createRootBranch: (name, description) => {
+    const { project } = get();
+    if (!project) throw new Error('No project loaded');
+
+    const newId = `branch_${nanoid(8)}`;
+    const color = branchColorFromId(newId);
+
+    // Place new root to the right of all existing branches
+    const maxX = project.branches.reduce((m, b) => Math.max(m, b.position?.x ?? 0), 0);
+    const position = { x: maxX + 500, y: 50 };
+
+    const newBranch: Branch = {
+      id: newId,
+      name,
+      description,
+      parentId: undefined,
+      status: 'active',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      color,
+      tags: [],
+      collaborators: [],
+      position,
+      checkpoints: [],
       comments: [],
     };
 
