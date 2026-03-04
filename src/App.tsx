@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
-import { mockProject } from '@/data/mockProject';
+import { useProjectsStore } from '@/store/useProjectsStore';
 import { HomePage } from '@/pages/HomePage';
 import { CanvasPage } from '@/pages/CanvasPage';
 import { BranchPage } from '@/pages/BranchPage';
@@ -27,10 +27,12 @@ function AppInner() {
 
 export default function App() {
   const loadProject = useProjectStore((s) => s.loadProject);
+  const firstProject = useProjectsStore((s) => s.projects[0]);
 
+  // Load the first project by default so direct /project navigation works
   useEffect(() => {
-    loadProject(mockProject);
-  }, [loadProject]);
+    if (firstProject) loadProject(firstProject);
+  }, [firstProject, loadProject]);
 
   return (
     <BrowserRouter>

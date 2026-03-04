@@ -130,14 +130,27 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   deleteBranch: (id) => {
-    set((s) => ({
-      project: s.project
-        ? {
-            ...s.project,
-            branches: s.project.branches.filter((b) => b.id !== id && b.parentId !== id),
+    set((s) => {
+      if (!s.project) return s;
+      // Collect all descendant IDs (recursive)
+      const toDelete = new Set<string>([id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const b of s.project.branches) {
+          if (!toDelete.has(b.id) && b.parentId !== null && toDelete.has(b.parentId)) {
+            toDelete.add(b.id);
+            grew = true;
           }
-        : null,
-    }));
+        }
+      }
+      return {
+        project: {
+          ...s.project,
+          branches: s.project.branches.filter((b) => !toDelete.has(b.id)),
+        },
+      };
+    });
   },
 
   mergeBranches: (sourceId, targetId) => {

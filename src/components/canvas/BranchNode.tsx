@@ -40,6 +40,10 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
   const [renameDraft, setRenameDraft] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
+  const descInputRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     if (props.dragging) wasDraggedRef.current = true;
   }, [props.dragging]);
@@ -47,6 +51,10 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
   useEffect(() => {
     if (renaming) renameInputRef.current?.focus();
   }, [renaming]);
+
+  useEffect(() => {
+    if (editingDesc) descInputRef.current?.focus();
+  }, [editingDesc]);
 
   const startRename = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -60,6 +68,20 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
       updateBranch(data.branchId, { name: trimmed });
     }
     setRenaming(false);
+  };
+
+  const startEditDesc = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDescDraft(data.description ?? '');
+    setEditingDesc(true);
+  };
+
+  const commitDesc = () => {
+    const trimmed = descDraft.trim();
+    if (trimmed !== (data.description ?? '')) {
+      updateBranch(data.branchId, { description: trimmed });
+    }
+    setEditingDesc(false);
   };
 
 
@@ -77,7 +99,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
     e.stopPropagation();
     const siblings = getChildBranches(data.branchId);
     const name = `v${siblings.length + 1}`;
-    const newBranch = createBranch(data.branchId, name, `New version from ${data.name}`);
+    const newBranch = createBranch(data.branchId, name, '');
     closePreviewPopup();
     pushToast({ type: 'success', message: `"${name}" created — click the name to rename` });
     navigate(`/branch/${newBranch.id}`);
@@ -185,9 +207,30 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
             </div>
 
             {/* Description */}
-            <p className="text-2xs text-ink-secondary line-clamp-2">
-              {data.description ?? ''}
-            </p>
+            {editingDesc ? (
+              <textarea
+                ref={descInputRef}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={commitDesc}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitDesc(); }
+                  if (e.key === 'Escape') setEditingDesc(false);
+                  e.stopPropagation();
+                }}
+                onClick={(e) => e.stopPropagation()}
+                rows={2}
+                className="w-full text-2xs text-ink-secondary bg-transparent border-b border-line outline-none resize-none leading-relaxed"
+              />
+            ) : (
+              <p
+                className="text-2xs text-ink-secondary line-clamp-2 cursor-text"
+                onClick={startEditDesc}
+                title="Click to edit description"
+              >
+                {data.description || <span className="text-ink-muted opacity-40 italic">Add description…</span>}
+              </p>
+            )}
 
             {/* Comment notification */}
             {uniqueCommenters.length > 0 && (

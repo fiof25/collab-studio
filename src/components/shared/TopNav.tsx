@@ -50,21 +50,21 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         {left}
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Tasks panel toggle */}
         <button
           onClick={toggleTaskPanel}
           title="Versions"
-          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
             taskPanelOpen
               ? 'bg-surface-3 text-ink-primary'
               : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
           }`}
         >
-          <ClipboardList size={14} />
+          <ClipboardList size={15} />
         </button>
 
-        {right && <><div className="w-px h-4 bg-line mx-1" />{right}</>}
+        {right && <>{right}</>}
       </div>
     </header>
   );

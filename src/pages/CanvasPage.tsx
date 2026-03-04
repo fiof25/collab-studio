@@ -19,7 +19,7 @@ export function CanvasPage() {
     <div className="flex flex-col h-full bg-canvas">
       <TopNav
         right={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
             {/* Global comments button */}
             <button
               onClick={toggleGlobalCommentsPanel}
@@ -37,6 +37,8 @@ export function CanvasPage() {
                 </span>
               )}
             </button>
+
+            <div className="w-px h-4 bg-line mx-2" />
 
             <button
               onClick={() => openModal('newDraft')}

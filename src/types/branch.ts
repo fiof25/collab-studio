@@ -45,6 +45,7 @@ export interface Branch {
   name: string;
   description: string;
   parentId: string | null;
+  mergeParentIds?: string[]; // additional parents for blend nodes
   status: BranchStatus;
   createdAt: number;
   updatedAt: number;

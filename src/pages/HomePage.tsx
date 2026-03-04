@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useProjectsStore } from '@/store/useProjectsStore';
 
 import { Avatar, AvatarGroup } from '@/components/shared/Avatar';
 import { formatRelativeTime } from '@/utils/dateUtils';
-import type { Collaborator } from '@/types/branch';
+import type { Collaborator, Project } from '@/types/branch';
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -31,18 +32,6 @@ const clara: Collaborator = {
   avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=clara&backgroundColor=ffd5dc',
   color: '#EC4899',
 };
-const dan: Collaborator = {
-  id: 'user_dan',
-  name: 'Dan Park',
-  avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=dan&backgroundColor=d1d4f9',
-  color: '#F59E0B',
-};
-
-const mobilePreview = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif}body{background:#0a0a14;color:#fff;display:flex;justify-content:center;align-items:flex-start;padding:20px}.phone{background:#111;border-radius:28px;width:200px;overflow:hidden;border:2.5px solid #2a2a40}.status{background:#000;padding:12px 16px 4px;display:flex;justify-content:space-between;font-size:10px;color:#666}.header{padding:12px 16px;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between}.header h1{font-size:15px;font-weight:700}.body{padding:12px;display:flex;flex-direction:column;gap:8px}.card{background:#161628;border-radius:12px;padding:12px;border:1px solid #2a2a40}.card h3{font-size:11px;font-weight:600;margin-bottom:4px}.card p{font-size:9px;color:#888}.pill{display:inline-block;background:#2d2060;color:#8B5CF6;font-size:8px;padding:2px 7px;border-radius:20px;margin-top:5px}.dot{width:6px;height:6px;border-radius:50%;background:#10B981}</style></head><body><div class="phone"><div class="status"><span>9:41</span><span>●●●</span></div><div class="header"><h1>Dashboard</h1><div class="dot"></div></div><div class="body"><div class="card"><h3>Monthly Revenue</h3><p>$24,502 — up this month</p><span class="pill">+12% ↑</span></div><div class="card"><h3>Active Users</h3><p>1,204 users online today</p><span class="pill">+5% ↑</span></div><div class="card"><h3>Conversion</h3><p>3.8% from landing page</p><span class="pill">stable →</span></div></div></div></body></html>`;
-
-const dashPreview = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif}body{background:#f6f6fc;color:#111;display:flex}.sidebar{width:160px;background:#fff;border-right:1px solid #e8e8f0;padding:16px 10px;flex-shrink:0}.sidebar .logo{font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:16px}.nav-item{padding:7px 10px;border-radius:7px;font-size:11px;color:#666;margin-bottom:2px}.nav-item.active{background:#f3f0ff;color:#7c3aed;font-weight:600}.main{flex:1;padding:20px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.stat{background:#fff;border:1px solid #e8e8f0;border-radius:10px;padding:12px}.stat .num{font-size:20px;font-weight:800}.stat .label{font-size:9px;color:#999;margin-top:2px}.chart{background:#fff;border:1px solid #e8e8f0;border-radius:10px;padding:12px;height:90px;display:flex;align-items:flex-end;gap:5px}.bar{flex:1;background:#7c3aed;border-radius:3px 3px 0 0;opacity:.7}</style></head><body><div class="sidebar"><div class="logo">Analytics</div><div class="nav-item active">Overview</div><div class="nav-item">Revenue</div><div class="nav-item">Users</div><div class="nav-item">Reports</div></div><div class="main"><div class="stats"><div class="stat"><div class="num">$48k</div><div class="label">Revenue</div></div><div class="stat"><div class="num">2.4k</div><div class="label">Users</div></div><div class="stat"><div class="num">12%</div><div class="label">Growth</div></div></div><div class="chart"><div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:52%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:68%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:74%"></div></div></div></body></html>`;
-
-const marketingPreview = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif}body{background:#fff;color:#111}nav{padding:14px 24px;border-bottom:1px solid #f0f0f8;display:flex;justify-content:space-between;align-items:center}nav .logo{font-weight:800;font-size:14px;color:#7c3aed}nav .links{display:flex;gap:14px;font-size:11px;color:#999}.hero{padding:52px 24px 36px;text-align:center;background:linear-gradient(180deg,#f9f7ff 0%,#fff 100%)}.hero h1{font-size:30px;font-weight:900;margin-bottom:10px;line-height:1.2}.hero h1 em{font-style:normal;color:#7c3aed}.hero p{font-size:12px;color:#888;max-width:300px;margin:0 auto 18px;line-height:1.6}.cta{display:inline-block;background:#7c3aed;color:#fff;padding:10px 22px;border-radius:8px;font-size:12px;font-weight:600}.logos{display:flex;justify-content:center;gap:20px;padding:18px;border-top:1px solid #f0f0f8}.logo-item{font-size:9px;font-weight:800;color:#ddd;letter-spacing:.08em}</style></head><body><nav><span class="logo">Nexus</span><div class="links"><span>Product</span><span>Pricing</span><span>Blog</span></div></nav><section class="hero"><h1>Grow <em>faster</em><br/>with Nexus</h1><p>The all-in-one growth platform for teams that ship.</p><span class="cta">Start free trial</span></section><div class="logos"><span class="logo-item">STRIPE</span><span class="logo-item">LINEAR</span><span class="logo-item">VERCEL</span><span class="logo-item">NOTION</span></div></body></html>`;
 
 interface HomeProject {
   id: string;
@@ -54,23 +43,27 @@ interface HomeProject {
   updatedAt: number;
   accentColor: string;
   preview: string;
-  isReal: boolean;
 }
 
-const MOCK_PROJECTS: HomeProject[] = [
-  {
-    id: 'proj_01',
-    name: 'Landing Page Redesign',
-    description: 'Collaborative redesign of the main product landing page.',
-    branchCount: 6,
-    snapshotCount: 9,
-    collaborators: [alice, bob, clara],
-    updatedAt: now - hour * 0.25,
-    accentColor: '#8B5CF6',
-    preview: '',
-    isReal: true,
-  },
-];
+function toHomeProject(p: Project): HomeProject {
+  const root = p.branches.find((b) => b.id === p.rootBranchId) ?? p.branches[0];
+  const uniqueCollabs = [
+    ...new Map(
+      p.branches.flatMap((b) => b.collaborators).map((c) => [c.id, c])
+    ).values(),
+  ].slice(0, 4);
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    branchCount: p.branches.length,
+    snapshotCount: p.branches.reduce((n, b) => n + b.checkpoints.length, 0),
+    collaborators: uniqueCollabs,
+    updatedAt: p.updatedAt,
+    accentColor: root?.color ?? '#8B5CF6',
+    preview: root?.checkpoints.at(-1)?.codeSnapshot ?? '',
+  };
+}
 
 interface ActivityItem {
   id: string;
@@ -142,25 +135,22 @@ const CARD_IFRAME_H = Math.ceil(CARD_PREVIEW_H / CARD_SCALE);
 
 function ProjectCard({
   project,
-  realPreview,
+  onOpen,
 }: {
   project: HomeProject;
-  realPreview: string;
+  onOpen: () => void;
 }) {
-  const navigate = useNavigate();
-  const preview = project.isReal ? realPreview : project.preview;
-
   return (
     <div
       className="rounded-xl overflow-hidden bg-surface-1 border cursor-pointer group transition-all duration-150"
       style={{ borderColor: 'rgb(var(--node-border))' }}
-      onClick={() => project.isReal && navigate('/project')}
+      onClick={onOpen}
     >
       {/* Preview */}
       <div className="overflow-hidden bg-surface-2 flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
-        {preview ? (
+        {project.preview ? (
           <iframe
-            srcDoc={preview}
+            srcDoc={project.preview}
             title={project.name}
             sandbox="allow-scripts"
             style={{
@@ -236,9 +226,9 @@ function ActivityList({ limit }: { limit?: number }) {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const project = useProjectStore((s) => s.project);
-  const realPreview =
-    project?.branches.find((b) => !b.parentId)?.checkpoints[0]?.codeSnapshot ?? '';
+  const loadProject = useProjectStore((s) => s.loadProject);
+  const { projects } = useProjectsStore();
+  const homeProjects = projects.map(toHomeProject);
   const [activeTab, setActiveTab] = useState<'projects' | 'activity'>('projects');
 
   return (
@@ -349,8 +339,15 @@ export function HomePage() {
                     </button>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
-                    {MOCK_PROJECTS.map((p) => (
-                      <ProjectCard key={p.id} project={p} realPreview={realPreview} />
+                    {homeProjects.map((p, i) => (
+                      <ProjectCard
+                        key={p.id}
+                        project={p}
+                        onOpen={() => {
+                          loadProject(projects[i]);
+                          navigate('/project');
+                        }}
+                      />
                     ))}
                   </div>
                 </section>
