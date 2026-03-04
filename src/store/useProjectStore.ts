@@ -95,7 +95,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       id: newId,
       name,
       description,
-      parentId: undefined,
+      parentId: null,
       status: 'active',
       createdAt: Date.now(),
       updatedAt: Date.now(),
