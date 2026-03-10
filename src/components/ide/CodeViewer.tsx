@@ -132,14 +132,15 @@ function colorizeCss(line: string): string {
 interface FullCodeViewerProps {
   code: string;
   language: string;
+  className?: string;
 }
 
-export function FullCodeViewer({ code, language }: FullCodeViewerProps) {
+export function FullCodeViewer({ code, language, className = 'h-full rounded-none border-0 border-t border-line' }: FullCodeViewerProps) {
   return (
     <CodeViewer
       block={{ language, code }}
       showLineNumbers
-      className="h-full rounded-none border-0 border-t border-line"
+      className={className}
     />
   );
 }

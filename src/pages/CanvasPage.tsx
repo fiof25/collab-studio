@@ -5,8 +5,10 @@ import { MergeModal } from '@/components/canvas/MergeModal';
 import { GlobalCommentsPanel } from '@/components/canvas/GlobalCommentsPanel';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useAutoBlueprint } from '@/hooks/useAutoBlueprint';
 
 export function CanvasPage() {
+  useAutoBlueprint();
   const openModal = useUIStore((s) => s.openModal);
   const { globalCommentsPanelOpen, toggleGlobalCommentsPanel } = useUIStore();
   const project = useProjectStore((s) => s.project);

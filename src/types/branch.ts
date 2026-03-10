@@ -1,4 +1,12 @@
+import type { Blueprint } from './blueprint';
+
 export type BranchStatus = 'active' | 'archived' | 'merging' | 'merged';
+
+export interface ProjectFile {
+  path: string;      // e.g. "index.html", "src/components/Hero.tsx"
+  content: string;
+  language: string;  // "html", "css", "typescript", "javascript", etc.
+}
 
 export interface CommentReply {
   id: string;
@@ -37,7 +45,8 @@ export interface BranchCheckpoint {
   label: string;
   timestamp: number;
   thumbnailUrl: string;
-  codeSnapshot: string;
+  codeSnapshot: string;  // kept for backward compat (single HTML string)
+  files?: ProjectFile[]; // multi-file support; single-file branches use [{ path: 'index.html', ... }]
 }
 
 export interface Branch {
@@ -55,6 +64,7 @@ export interface Branch {
   tags: string[];
   position: { x: number; y: number };
   comments: Comment[];
+  blueprint?: Blueprint | null;
 }
 
 export interface Project {

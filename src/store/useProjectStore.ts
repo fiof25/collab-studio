@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import type { Branch, Comment, CommentReply, Project } from '@/types/branch';
+import type { Blueprint } from '@/types/blueprint';
 import { branchColorFromId } from '@/utils/colorUtils';
 import { computeTreeLayout } from '@/utils/branchUtils';
 
@@ -20,6 +21,7 @@ interface ProjectStore {
   addComment: (branchId: string, content: string, author: { id: string; name: string; avatarUrl: string; color: string }, pos?: { x: number; y: number }) => Comment;
   resolveComment: (branchId: string, commentId: string) => void;
   addReply: (branchId: string, commentId: string, content: string, author: { name: string; avatarUrl: string; color: string }) => void;
+  updateBlueprint: (branchId: string, blueprint: Blueprint) => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -239,6 +241,17 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           b.id === branchId
             ? { ...b, comments: b.comments.map((c) => c.id === commentId ? { ...c, resolved: !c.resolved } : c) }
             : b
+        ),
+      } : null,
+    }));
+  },
+
+  updateBlueprint: (branchId, blueprint) => {
+    set((s) => ({
+      project: s.project ? {
+        ...s.project,
+        branches: s.project.branches.map((b) =>
+          b.id === branchId ? { ...b, blueprint, updatedAt: Date.now() } : b
         ),
       } : null,
     }));

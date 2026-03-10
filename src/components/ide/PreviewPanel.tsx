@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone } from 'lucide-react';
 import { clsx } from 'clsx';
 import { FullCodeViewer } from './CodeViewer';
+import { BlueprintPanel } from './BlueprintPanel';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useUIStore } from '@/store/useUIStore';
 import { formatRelativeTime } from '@/utils/dateUtils';
@@ -12,7 +13,7 @@ interface PreviewPanelProps {
   accentColor: string;
 }
 
-type ActiveTab = 'preview' | 'code';
+type ActiveTab = 'preview' | 'code' | 'blueprint';
 type DeviceWidth = 'full' | 'tablet' | 'mobile';
 
 const DEVICE_CYCLE: DeviceWidth[] = ['full', 'tablet', 'mobile'];
@@ -26,7 +27,7 @@ const DEMO_AUTHOR = {
   color: '#8B5CF6',
 };
 
-export function PreviewPanel({ branchId }: PreviewPanelProps) {
+export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('preview');
   const [device, setDevice] = useState<DeviceWidth>('full');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -36,14 +37,29 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const setPanelSide = useUIStore((s) => s.setPanelSide);
+  const [activeFilePath, setActiveFilePath] = useState<string | null>(null);
   const branch = useProjectStore((s) => s.project?.branches.find((b) => b.id === branchId));
   const addComment = useProjectStore((s) => s.addComment);
   const addReply = useProjectStore((s) => s.addReply);
-  const latestCode = branch?.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '';
+  const latestCheckpoint = branch?.checkpoints[branch.checkpoints.length - 1];
+  const latestFiles = latestCheckpoint?.files;
+  const latestCode =
+    latestFiles?.find((f) => f.path === 'index.html')?.content ??
+    latestCheckpoint?.codeSnapshot ??
+    '';
   const pinnedComments = (branch?.comments ?? []).filter((c) => c.x !== undefined && c.y !== undefined);
 
+  // Resolve active file — fall back to index.html or first file; if path not in list, reset
+  const activeFile =
+    latestFiles?.find((f) => f.path === activeFilePath) ??
+    latestFiles?.find((f) => f.path === 'index.html') ??
+    latestFiles?.[0] ??
+    null;
+  const activeFileContent = activeFile?.content ?? latestCode;
+  const activeFileLanguage = activeFile?.language ?? 'html';
+
   useEffect(() => { setRefreshKey((k) => k + 1); }, [latestCode]);
-  useEffect(() => { setPanelSide(activeTab === 'code' ? 'code' : 'preview'); }, [activeTab, setPanelSide]);
+  useEffect(() => { setPanelSide(activeTab === 'preview' ? 'preview' : 'code'); }, [activeTab, setPanelSide]);
 
   // Exit comment mode when switching tabs
   useEffect(() => {
@@ -71,7 +87,7 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
       {/* Tab bar */}
       <div className="flex items-center justify-between px-3 border-b border-line flex-shrink-0 h-10">
         <div className="flex items-center gap-1">
-          {(['preview', 'code'] as ActiveTab[]).map((tab) => (
+          {(['preview', 'code', 'blueprint'] as ActiveTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -189,16 +205,48 @@ export function PreviewPanel({ branchId }: PreviewPanelProps) {
               )}
             </div>
           </div>
-        ) : (
-          <div className="w-full h-full overflow-auto">
-            {latestCode ? (
-              <FullCodeViewer code={latestCode} language="html" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-ink-muted text-sm">
-                No code to display
+        ) : activeTab === 'code' ? (
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            {/* File tabs — only shown when multiple files exist */}
+            {latestFiles && latestFiles.length > 1 && (
+              <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-line bg-surface-1 overflow-x-auto flex-shrink-0">
+                {latestFiles.map((f) => {
+                  const filename = f.path.split('/').pop() ?? f.path;
+                  const isActive = f.path === (activeFile?.path ?? null);
+                  return (
+                    <button
+                      key={f.path}
+                      onClick={() => setActiveFilePath(f.path)}
+                      title={f.path}
+                      className={clsx(
+                        'px-3 py-1 rounded-md text-xs font-mono transition-colors flex-shrink-0 whitespace-nowrap',
+                        isActive
+                          ? 'text-ink-primary bg-surface-2'
+                          : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-2/50'
+                      )}
+                    >
+                      {filename}
+                    </button>
+                  );
+                })}
               </div>
             )}
+            <div className="flex-1 min-h-0 overflow-auto">
+              {activeFileContent ? (
+                <FullCodeViewer
+                  code={activeFileContent}
+                  language={activeFileLanguage}
+                  className="rounded-none border-0 border-t border-line"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-ink-muted text-sm">
+                  No code to display
+                </div>
+              )}
+            </div>
           </div>
+        ) : (
+          <BlueprintPanel branchId={branchId} accentColor={accentColor} />
         )}
       </div>
     </div>

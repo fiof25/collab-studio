@@ -2,6 +2,40 @@ import { useRef, useCallback } from 'react';
 import { nanoid } from 'nanoid';
 import { useChatStore } from '@/store/useChatStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import type { ProjectFile } from '@/types/branch';
+
+const SERVER_URL = 'http://localhost:3001';
+
+/** Fire-and-forget: generate blueprint + snapshot after a code checkpoint */
+async function triggerAgents(
+  branchId: string,
+  branchName: string,
+  parentBranchName: string | undefined,
+  files: ProjectFile[],
+  updateBlueprint: (id: string, bp: import('@/types/blueprint').Blueprint) => void,
+  updateBranch: (id: string, patch: Parameters<ReturnType<typeof useProjectStore.getState>['updateBranch']>[1]) => void,
+) {
+  // Run both in parallel — failures are silently ignored (server may not be running)
+  const [bpRes, snapRes] = await Promise.allSettled([
+    fetch(`${SERVER_URL}/api/blueprint/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branchId, branchName, parentBranchName, files }),
+    }).then((r) => r.json()),
+    fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branchId, branchName, files }),
+    }).then((r) => r.json()),
+  ]);
+
+  if (bpRes.status === 'fulfilled' && bpRes.value?.success) {
+    updateBlueprint(branchId, bpRes.value.blueprint);
+  }
+  if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description) {
+    updateBranch(branchId, { description: snapRes.value.description });
+  }
+}
 
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -68,7 +102,7 @@ export function useChatStream(branchId: string) {
   const abortRef = useRef<AbortController | null>(null);
   const { addUserMessage, startAssistantMessage, appendChunk, finalizeMessage, setStreaming, getThread } =
     useChatStore();
-  const { getBranchById, updateBranch } = useProjectStore();
+  const { getBranchById, updateBranch, updateBlueprint } = useProjectStore();
 
   const sendMessage = useCallback(
     async (prompt: string) => {
@@ -87,7 +121,11 @@ export function useChatStream(branchId: string) {
         .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] }));
 
       const branch = getBranchById(branchId);
-      const currentCode = branch?.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '';
+      const latestCkpt = branch?.checkpoints[branch.checkpoints.length - 1];
+      const currentCode =
+        latestCkpt?.files?.find((f) => f.path === 'index.html')?.content ??
+        latestCkpt?.codeSnapshot ??
+        '';
 
       let fullContent = '';
 
@@ -176,9 +214,22 @@ export function useChatStream(branchId: string) {
                 timestamp: Date.now(),
                 thumbnailUrl: '',
                 codeSnapshot: codeGenerated,
+                files: [{ path: 'index.html', content: codeGenerated, language: 'html' }],
               },
             ],
           });
+        }
+      }
+
+      // Fire blueprint + snapshot agents after code checkpoint (non-blocking)
+      if (codeGenerated) {
+        const latestBranch = getBranchById(branchId);
+        if (latestBranch) {
+          const newFiles: ProjectFile[] = [{ path: 'index.html', content: codeGenerated, language: 'html' }];
+          const parentBranch = latestBranch.parentId
+            ? getBranchById(latestBranch.parentId)
+            : undefined;
+          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch).catch(() => {});
         }
       }
 
@@ -186,7 +237,7 @@ export function useChatStream(branchId: string) {
       setStreaming(false);
       abortRef.current = null;
     },
-    [branchId, addUserMessage, startAssistantMessage, appendChunk, finalizeMessage, setStreaming, getThread, getBranchById, updateBranch]
+    [branchId, addUserMessage, startAssistantMessage, appendChunk, finalizeMessage, setStreaming, getThread, getBranchById, updateBranch, updateBlueprint]
   );
 
   const abort = useCallback(() => {

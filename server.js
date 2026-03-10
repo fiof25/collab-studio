@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
+import { readFileSync } from 'fs';
+import { blueprintRouter } from './server/routes/blueprint.js';
+import { mergeRouter } from './server/routes/merge.js';
+import { createRateLimiter } from './server/middleware/rateLimit.js';
 
 config();
 
@@ -8,8 +12,23 @@ const app = express();
 const PORT = 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Load system prompt from COLLABSTUDIO.md at startup
+let SYSTEM_PROMPT = '';
+try {
+  SYSTEM_PROMPT = readFileSync(new URL('./COLLABSTUDIO.md', import.meta.url), 'utf8');
+  console.log('✓ Loaded COLLABSTUDIO.md system prompt');
+} catch {
+  console.warn('⚠ COLLABSTUDIO.md not found — using inline fallback prompt');
+  SYSTEM_PROMPT = 'You are a vibe coding AI. Help users iterate on HTML prototypes. Return the FULL updated HTML in a ```html block when making changes.';
+}
+
+const CONTEXT_WINDOW = 10; // number of most recent messages to include
+
 app.use(cors({ origin: 'http://localhost:5173' }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '4mb' }));
+
+app.use('/api/blueprint', createRateLimiter({ maxCalls: 10, windowMs: 60_000 }), blueprintRouter);
+app.use('/api/merge', createRateLimiter({ maxCalls: 5, windowMs: 60_000 }), mergeRouter);
 
 const MOCK_RESPONSE = `Added a logo bar and a 3-column feature grid below the hero.
 
@@ -73,31 +92,25 @@ const MOCK_RESPONSE = `Added a logo bar and a 3-column feature grid below the he
 
 Let me know what to tweak next!`;
 
-function buildSystemPrompt(currentCode) {
-  return `You are a vibe coding AI assistant helping build web prototypes collaboratively. The user is iterating on a branch of their project.
-
-Current code in this branch:
-\`\`\`html
-${currentCode}
-\`\`\`
-
-RULES:
-- When the user asks for UI/code changes, respond with a brief explanation followed by the COMPLETE updated HTML file in a \`\`\`html code block.
-- Always return the FULL HTML file — never partial snippets.
-- Keep styles inline in <style> tags (no external CSS frameworks).
-- Design aesthetic: clean, neutral, professional tech company style. Use system-ui fonts, neutral grays (#111, #6b7280, #e5e7eb), and restrained accent colors (blue #2563eb or black #111). Avoid gradients, glows, and heavy decoration.
-- When the user is asking questions or giving feedback without requesting changes, respond conversationally without a code block.
-- Be concise. Lead with what changed, then provide the code.`;
-}
-
 function buildGeminiContents(messages, currentCode) {
-  const systemPrompt = buildSystemPrompt(currentCode);
+  const systemTurn = `${SYSTEM_PROMPT}
+
+---
+
+## Current Branch Code
+
+\`\`\`html
+${currentCode || '<!-- No code yet — start fresh! -->'}
+\`\`\``;
+
   const contents = [
-    { role: 'user', parts: [{ text: systemPrompt }] },
-    { role: 'model', parts: [{ text: 'Got it! I\'ll help you iterate on this prototype. I\'ll return the full HTML when making changes, and chat conversationally for questions. What would you like to do?' }] },
+    { role: 'user', parts: [{ text: systemTurn }] },
+    { role: 'model', parts: [{ text: "Got it — I've read the current prototype and I'm ready to help. What would you like to change?" }] },
   ];
 
-  for (const msg of messages) {
+  // Sliding window: keep the most recent N messages
+  const window = messages.slice(-CONTEXT_WINDOW);
+  for (const msg of window) {
     contents.push({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }],
@@ -184,7 +197,9 @@ app.post('/api/chat', async (req, res) => {
         }
         try {
           const parsed = JSON.parse(data);
-          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          // Filter out thinking tokens (parts with thought: true) — Gemini 2.5 Flash
+          const parts = parsed.candidates?.[0]?.content?.parts ?? [];
+          const text = parts.filter(p => !p.thought).map(p => p.text ?? '').join('');
           if (text) {
             res.write(`data: ${JSON.stringify({ text })}\n\n`);
           }
