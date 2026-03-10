@@ -101,7 +101,7 @@ export function MergeModal({ variant }: MergeModalProps) {
       const contributor = contextSourceId ?? '';
       setBaseId(base);
       setContributorId(contributor);
-      setStep(base && contributor ? 'features' : 'select');
+      setStep('select');
       setSelectedFeatureIds(new Set());
       setProgressLines([]);
       setMergeError(null);
@@ -466,7 +466,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               <span className="text-ink-secondary font-medium">{toDisplayName(baseBranch.name)}</span>.
             </p>
 
-            <div className="flex gap-4 min-h-[420px]">
+            <div className="flex gap-5">
               {/* Left: contributor preview + overlay */}
               <div className="flex-1 flex flex-col gap-2 min-w-0">
                 <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">
@@ -481,7 +481,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               </div>
 
               {/* Right: feature checklist + base thumbnail */}
-              <div className="w-64 flex-shrink-0 flex flex-col gap-4">
+              <div className="w-72 flex-shrink-0 flex flex-col gap-4">
                 {/* Feature checklist */}
                 <div className="flex-1 flex flex-col gap-2">
                   <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">Features to import</p>
@@ -491,7 +491,7 @@ export function MergeModal({ variant }: MergeModalProps) {
                       <p className="text-xs text-ink-muted">No blueprint yet. Generate one in the IDE to unlock feature selection.</p>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[300px] pr-1">
+                    <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[220px] pr-1">
                       {contributorFeatures.map((f) => {
                         const checked = selectedFeatureIds.has(f.id);
                         return (
@@ -840,17 +840,17 @@ function SourcePreviewWithOverlay({
     branch.checkpoints.at(-1)?.codeSnapshot ?? '';
 
   return (
-    <div className="relative flex-1 rounded-2xl overflow-hidden border border-line bg-white" style={{ minHeight: 360 }}>
+    <div className="relative rounded-2xl overflow-hidden border border-line bg-white" style={{ height: 380 }}>
       {latestCode ? (
         <>
           <iframe
             srcDoc={latestCode}
             className="absolute top-0 left-0 border-none pointer-events-none"
-            style={{ width: '1200px', height: '900px', transformOrigin: 'top left', transform: 'scale(0.37)', transformBox: 'fill-box' }}
+            style={{ width: '1200px', height: '900px', transformOrigin: 'top left', transform: 'scale(0.50)', transformBox: 'fill-box' }}
             sandbox="allow-scripts"
             title={branch.name}
           />
-          <div className="absolute inset-0" style={{ height: `${(900 * 0.37)}px` }}>
+          <div className="absolute inset-0">
             <FeatureOverlay features={features} selectedIds={selectedIds} onToggle={onToggle} />
           </div>
         </>

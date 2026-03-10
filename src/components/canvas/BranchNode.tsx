@@ -79,7 +79,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
   const commitDesc = () => {
     const trimmed = descDraft.trim();
     if (trimmed !== (data.description ?? '')) {
-      updateBranch(data.branchId, { description: trimmed });
+      updateBranch(data.branchId, { description: trimmed, descriptionPinned: true });
     }
     setEditingDesc(false);
   };

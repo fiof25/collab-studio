@@ -114,7 +114,7 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
       } else {
         setError('Blueprint generation failed. Is the server running?');
       }
-      if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description) {
+      if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description && !branch.descriptionPinned) {
         updateBranch(branchId, { description: snapRes.value.description });
       }
     } catch {

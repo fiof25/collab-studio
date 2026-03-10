@@ -71,7 +71,7 @@ export function useAutoBlueprint() {
           if (bpRes.status === 'fulfilled' && bpRes.value?.success) {
             updateBlueprint(branch.id, bpRes.value.blueprint);
           }
-          if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description) {
+          if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description && !branch.descriptionPinned) {
             updateBranch(branch.id, { description: snapRes.value.description });
           }
         } catch {

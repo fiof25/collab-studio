@@ -53,6 +53,7 @@ export interface Branch {
   id: string;
   name: string;
   description: string;
+  descriptionPinned?: boolean; // true once user has manually edited — AI will not overwrite
   parentId: string | null;
   mergeParentIds?: string[]; // additional parents for blend nodes
   status: BranchStatus;
