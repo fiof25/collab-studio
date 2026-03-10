@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { RefreshCw, ChevronDown, ChevronRight, Loader2, FileCode } from 'lucide-react';
-import { clsx } from 'clsx';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronDown, ChevronRight, Loader2, FileCode } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import type { Blueprint, BlueprintFeature } from '@/types/blueprint';
 import type { ProjectFile } from '@/types/branch';
@@ -65,7 +64,7 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
   const updateBlueprint = useProjectStore((s) => s.updateBlueprint);
   const updateBranch = useProjectStore((s) => s.updateBranch);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const generatingRef = useRef(false);
 
   const blueprint: Blueprint | null | undefined = branch?.blueprint;
   const latestCheckpoint = branch?.checkpoints.at(-1);
@@ -83,10 +82,10 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
         ? [{ path: 'index.html', content: latestCheckpoint.codeSnapshot, language: 'html' }]
         : [];
 
-  const generate = async () => {
-    if (!branch || !effectiveFiles.length) return;
+  const generate = useCallback(async () => {
+    if (!branch || !effectiveFiles.length || generatingRef.current) return;
+    generatingRef.current = true;
     setGenerating(true);
-    setError(null);
 
     try {
       const parentBranch = branch.parentId ? getBranchById(branch.parentId) : undefined;
@@ -111,18 +110,27 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
 
       if (bpRes.status === 'fulfilled' && bpRes.value?.success) {
         updateBlueprint(branchId, bpRes.value.blueprint);
-      } else {
-        setError('Blueprint generation failed. Is the server running?');
       }
       if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description && !branch.descriptionPinned) {
         updateBranch(branchId, { description: snapRes.value.description });
       }
     } catch {
-      setError('Could not reach server. Run npm run dev:full to enable agents.');
+      // Server not running — silently skip
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branch, branchId, effectiveFiles.length]);
+
+  // Auto-generate whenever there's no blueprint or the code has changed since last generation
+  useEffect(() => {
+    if (!effectiveFiles.length || generatingRef.current) return;
+    if (!blueprint || isDrift) {
+      generate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!blueprint, isDrift, latestCheckpoint?.id]);
 
   // No code yet
   if (!effectiveFiles.length) {
@@ -136,28 +144,12 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
     );
   }
 
-  // No blueprint yet — prompt generation
+  // No blueprint yet — show loading while auto-generating
   if (!blueprint) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-        <div className="w-10 h-10 rounded-xl bg-surface-2 flex items-center justify-center">
-          <FileCode size={20} className="text-ink-muted" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-ink-primary">No BLUEPRINT yet</p>
-          <p className="text-xs text-ink-muted leading-relaxed">
-            Generate a BLUEPRINT so AI agents can understand this prototype's structure and features.
-          </p>
-        </div>
-        {error && <p className="text-xs text-red-400">{error}</p>}
-        <button
-          onClick={generate}
-          disabled={generating}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-line hover:bg-surface-3 text-xs font-medium text-ink-primary transition-colors disabled:opacity-50"
-        >
-          {generating ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-          {generating ? 'Generating…' : 'Generate BLUEPRINT'}
-        </button>
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+        <Loader2 size={20} className="text-ink-muted animate-spin" />
+        <p className="text-xs text-ink-muted">Analyzing blueprint…</p>
       </div>
     );
   }
@@ -177,19 +169,9 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
           </div>
           <p className="text-[11px] text-ink-muted leading-relaxed mt-0.5">{blueprint.summary}</p>
         </div>
-        <button
-          onClick={generate}
-          disabled={generating}
-          title={isDrift ? 'Blueprint is outdated — regenerate' : 'Regenerate BLUEPRINT'}
-          className={clsx(
-            'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-colors disabled:opacity-40',
-            isDrift
-              ? 'text-amber-400 hover:bg-amber-500/15'
-              : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-2'
-          )}
-        >
-          {generating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-        </button>
+        {generating && (
+          <Loader2 size={12} className="animate-spin text-ink-muted flex-shrink-0" />
+        )}
       </div>
 
       {/* Body */}

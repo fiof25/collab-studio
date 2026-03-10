@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -9,10 +8,6 @@ import { formatRelativeTime } from '@/utils/dateUtils';
 import type { Collaborator, Project } from '@/types/branch';
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-
-const now = Date.now();
-const hour = 1000 * 60 * 60;
-const day = hour * 24;
 
 const alice: Collaborator = {
   id: 'user_alice',
@@ -64,65 +59,6 @@ function toHomeProject(p: Project): HomeProject {
     preview: root?.checkpoints.at(-1)?.codeSnapshot ?? '',
   };
 }
-
-interface ActivityItem {
-  id: string;
-  actor: Collaborator;
-  verb: string;
-  target: string;
-  targetColor: string;
-  timestamp: number;
-}
-
-const ACTIVITIES: ActivityItem[] = [
-  { id: 'a1', actor: alice, verb: 'saved a checkpoint on', target: 'hero-redesign', targetColor: '', timestamp: now - hour * 0.2 },
-  { id: 'a2', actor: bob, verb: 'left a comment on', target: 'dark-mode', targetColor: '', timestamp: now - hour * 1 },
-  { id: 'a3', actor: clara, verb: 'created a new version from', target: 'mobile-first', targetColor: '', timestamp: now - hour * 2 },
-  { id: 'a4', actor: alice, verb: 'blended', target: 'dark-mode + mobile-first', targetColor: '', timestamp: now - hour * 5 },
-  { id: 'a5', actor: bob, verb: 'renamed', target: 'v3 → perf-pass', targetColor: '', timestamp: now - hour * 8 },
-  { id: 'a6', actor: clara, verb: 'saved a checkpoint on', target: 'mobile-first', targetColor: '', timestamp: now - day * 1 },
-  { id: 'a7', actor: alice, verb: 'created a new version from', target: 'hero-redesign', targetColor: '', timestamp: now - day * 1.2 },
-  { id: 'a8', actor: bob, verb: 'saved a checkpoint on', target: 'dark-mode', targetColor: '', timestamp: now - day * 2 },
-];
-
-// ─── Contribution data (GitHub-style grid) ────────────────────────────────────
-
-const GRID_WEEKS = 26;
-const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
-
-function seededRand(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-// [week][day] — week 0 is oldest, day 0 is Monday
-const CONTRIB_GRID: number[][] = Array.from({ length: GRID_WEEKS }, (_, w) =>
-  Array.from({ length: 7 }, (_, d) => {
-    const isWeekend = d >= 5;
-    const recency = w / GRID_WEEKS;
-    const r = seededRand(w * 7 + d);
-    if (isWeekend) return r < 0.18 ? 1 : 0;
-    const adj = r * (0.35 + recency * 0.65);
-    return adj < 0.08 ? 0 : adj < 0.28 ? 1 : adj < 0.52 ? 2 : adj < 0.74 ? 3 : 4;
-  })
-);
-
-const TOTAL_CONTRIBS = CONTRIB_GRID.flat().filter(v => v > 0).length;
-
-function getMonthLabels(weeks: number): string[] {
-  const labels: string[] = new Array(weeks).fill('');
-  const today = new Date();
-  let lastMonth = -1;
-  for (let i = 0; i < weeks; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (weeks - 1 - i) * 7);
-    const m = d.getMonth();
-    if (m !== lastMonth) { labels[i] = d.toLocaleString('default', { month: 'short' }); lastMonth = m; }
-  }
-  return labels;
-}
-
-const MONTH_LABELS = getMonthLabels(GRID_WEEKS);
 
 // ─── Constants for iframe scaling ─────────────────────────────────────────────
 
@@ -192,36 +128,6 @@ function ProjectCard({
   );
 }
 
-// ─── Activity List ────────────────────────────────────────────────────────────
-
-function ActivityList({ limit }: { limit?: number }) {
-  const items = limit ? ACTIVITIES.slice(0, limit) : ACTIVITIES;
-  return (
-    <div className="border border-line rounded-xl overflow-hidden">
-      {items.map((item, i) => (
-        <div
-          key={item.id}
-          className={`flex items-center gap-2.5 px-3 py-2 bg-surface-1 hover:bg-surface-2 transition-colors ${
-            i < items.length - 1 ? 'border-b border-line' : ''
-          }`}
-        >
-          <Avatar collaborator={item.actor} size="xs" />
-          <p className="flex-1 min-w-0 text-xs text-ink-secondary truncate">
-            <span className="font-medium text-ink-primary">
-              {item.actor.name.split(' ')[0]}
-            </span>{' '}
-            {item.verb}{' '}
-            <span className="font-medium text-ink-primary">{item.target}</span>
-          </p>
-          <span className="text-2xs text-ink-muted flex-shrink-0">
-            {formatRelativeTime(item.timestamp)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function HomePage() {
@@ -229,7 +135,6 @@ export function HomePage() {
   const loadProject = useProjectStore((s) => s.loadProject);
   const { projects } = useProjectsStore();
   const homeProjects = projects.map(toHomeProject);
-  const [activeTab, setActiveTab] = useState<'projects' | 'activity'>('projects');
 
   return (
     <div className="flex flex-col h-full bg-canvas">
@@ -238,22 +143,6 @@ export function HomePage() {
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-ink-primary">Collab Studio</span>
         </div>
-
-        <nav className="flex items-center gap-0.5 text-xs">
-          {(['projects', 'activity'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 rounded-lg font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? 'text-ink-primary bg-surface-2'
-                  : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
 
         <div className="flex items-center gap-2">
           <Avatar collaborator={alice} size="sm" />
@@ -324,47 +213,31 @@ export function HomePage() {
           {/* ── Right Content ── */}
           <div className="flex flex-col gap-8 min-w-0">
 
-            {activeTab === 'projects' ? (
-              <>
-                {/* Projects */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
-                    <button
-                      onClick={() => navigate('/project')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
-                    >
-                      <Plus size={14} />
-                      New project
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {homeProjects.map((p, i) => (
-                      <ProjectCard
-                        key={p.id}
-                        project={p}
-                        onOpen={() => {
-                          loadProject(projects[i]);
-                          navigate('/project');
-                        }}
-                      />
-                    ))}
-                  </div>
-                </section>
-
-                {/* Activity preview */}
-                <section>
-                  <h3 className="text-sm font-semibold text-ink-primary mb-4">Recent Activity</h3>
-                  <ActivityList limit={5} />
-                </section>
-              </>
-            ) : (
-              /* Full activity feed */
-              <section>
-                <h3 className="text-sm font-semibold text-ink-primary mb-4">All Activity</h3>
-                <ActivityList />
-              </section>
-            )}
+            {/* Projects */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
+                <button
+                  onClick={() => navigate('/project')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
+                >
+                  <Plus size={14} />
+                  New project
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {homeProjects.map((p, i) => (
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    onOpen={() => {
+                      loadProject(projects[i]);
+                      navigate('/project');
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
 
           </div>
         </div>

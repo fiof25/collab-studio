@@ -44,7 +44,7 @@ export function CanvasPage() {
 
             <button
               onClick={() => openModal('newDraft')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
             >
               <Plus size={15} />
               New draft

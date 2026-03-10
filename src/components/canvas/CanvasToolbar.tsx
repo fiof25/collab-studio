@@ -1,5 +1,5 @@
 import { useReactFlow } from '@xyflow/react';
-import { ZoomIn, ZoomOut, Maximize2, GitBranch, Merge } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Plus, Merge } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
@@ -31,14 +31,14 @@ export function CanvasToolbar() {
 
       <ToolButton
         onClick={() => openModal('newBranch')}
-        title="New version"
+        title="Add branch"
         accent
       >
-        <GitBranch size={15} />
+        <Plus size={15} />
       </ToolButton>
       <ToolButton
         onClick={() => openModal('merge')}
-        title="Blend versions"
+        title="Merge versions"
         blend
       >
         <Merge size={15} />

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Merge } from 'lucide-react';
+import { Merge, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import {
   ReactFlow,
   Background,
@@ -41,7 +41,7 @@ function FlowInner() {
   const updateBranch = useProjectStore((s) => s.updateBranch);
   const openModal = useUIStore((s) => s.openModal);
   const { fitViewTrigger, setViewport, blendTargetId, setBlendTarget } = useCanvasStore();
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
@@ -49,7 +49,7 @@ function FlowInner() {
 
   // Position the blend bar at the center of the selected nodes in container coordinates
   const blendBarPos = useMemo(() => {
-    if (selectedBranchIds.length < 2) return null;
+    if (selectedBranchIds.length !== 2) return null;
     const sel = nodes.filter((n) => selectedBranchIds.includes(n.id));
     if (!sel.length) return null;
     const xs = sel.map((n) => n.position.x);
@@ -62,10 +62,19 @@ function FlowInner() {
 
   // Stores the position of the node before dragging, so we can snap it back if a blend is triggered
   const dragOriginalPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+
+  // Stable fingerprint — only includes data that should trigger a re-sync.
+  // Intentionally excludes position (managed locally) and blueprint/comments
+  // so the effect doesn't fire on unrelated project updates mid-drag.
+  const nodeDataKey = storeNodes
+    .map((n) => `${n.id}:${n.data.name}:${n.data.status}:${n.data.color}:${n.data.checkpointCount}`)
+    .join('|');
 
   // Sync store → React Flow local state when branches are added/removed/updated.
   // Preserve positions already set by dragging so they don't snap back.
   useEffect(() => {
+    if (isDraggingRef.current) return;
     setNodes((prev) => {
       const posMap = new Map(prev.map((n) => [n.id, n.position]));
       return storeNodes.map((n) => ({
@@ -73,7 +82,8 @@ function FlowInner() {
         position: posMap.get(n.id) ?? n.position,
       }));
     });
-  }, [storeNodes, setNodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeDataKey]);
 
   useEffect(() => {
     if (fitViewTrigger > 0) {
@@ -92,6 +102,7 @@ function FlowInner() {
   }, []);
 
   const handleBlendSelected = useCallback(() => {
+    if (selectedBranchIds.length !== 2) return;
     openModal('merge', { branchIds: selectedBranchIds });
     setNodes((prev) => prev.map((n) => ({ ...n, selected: false })));
     setSelectedBranchIds([]);
@@ -105,6 +116,7 @@ function FlowInner() {
   );
 
   const handleNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    isDraggingRef.current = true;
     dragOriginalPosRef.current = { ...node.position };
   }, []);
 
@@ -128,6 +140,7 @@ function FlowInner() {
   // On drop: if overlapping another node, snap back and open blend confirmation
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      isDraggingRef.current = false;
       if (blendTargetId && blendTargetId !== node.id) {
         // Snap dragged node back to its original position
         const originalPos = dragOriginalPosRef.current;
@@ -180,9 +193,24 @@ function FlowInner() {
           gap={28}
           size={1.5}
         />
-
-
       </ReactFlow>
+      {/* Custom zoom controls — bottom right */}
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col glass rounded-xl overflow-hidden">
+        {[
+          { icon: <ZoomIn size={14} />, onClick: () => zoomIn({ duration: 200 }), title: 'Zoom in' },
+          { icon: <ZoomOut size={14} />, onClick: () => zoomOut({ duration: 200 }), title: 'Zoom out' },
+          { icon: <Maximize2 size={14} />, onClick: () => fitView({ duration: 400, padding: 0.15 }), title: 'Fit view' },
+        ].map(({ icon, onClick, title }, i, arr) => (
+          <button
+            key={title}
+            onClick={onClick}
+            title={title}
+            className={`w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-3 transition-colors${i < arr.length - 1 ? ' border-b border-line' : ''}`}
+          >
+            {icon}
+          </button>
+        ))}
+      </div>
       {/* Multi-select blend bar — floats at the center of the selection */}
       <AnimatePresence>
         {blendBarPos && (
@@ -204,7 +232,7 @@ function FlowInner() {
               className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface-1 border border-line shadow-xl text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
             >
               <Merge size={13} />
-              Blend
+              Merge
             </button>
           </motion.div>
         )}

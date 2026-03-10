@@ -22,6 +22,7 @@ interface ProjectStore {
   resolveComment: (branchId: string, commentId: string) => void;
   addReply: (branchId: string, commentId: string, content: string, author: { name: string; avatarUrl: string; color: string }) => void;
   updateBlueprint: (branchId: string, blueprint: Blueprint) => void;
+  renameProject: (name: string) => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -254,6 +255,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           b.id === branchId ? { ...b, blueprint, updatedAt: Date.now() } : b
         ),
       } : null,
+    }));
+  },
+
+  renameProject: (name) => {
+    set((s) => ({
+      project: s.project ? { ...s.project, name } : null,
     }));
   },
 

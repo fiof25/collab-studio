@@ -2,7 +2,7 @@ import { memo, useRef, useEffect, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Pencil, Merge, GitBranch, Trash2 } from 'lucide-react';
+import { Camera, Pencil, Merge, GitBranch, Trash2, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -267,10 +267,10 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           <button
             onClick={handleStartNewVersion}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-ink-muted hover:text-ink-primary hover:bg-surface-3 transition-colors text-xs"
-            title="New version"
+            title="Add branch"
           >
-            <GitBranch size={11} />
-            New version
+            <Plus size={11} />
+            Add branch
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); deleteBranch(data.branchId); }}
@@ -286,7 +286,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
           <div className="absolute inset-0 rounded-xl flex items-center justify-center pointer-events-none z-10">
             <div className="px-3 py-1.5 rounded-full bg-accent-violet text-white text-xs font-semibold flex items-center gap-1.5">
               <Merge size={11} />
-              Drop to blend
+              Drop to merge
             </div>
           </div>
         )}

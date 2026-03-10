@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Merge, GitBranch, Check, ChevronRight, Loader2, CheckCircle2, ArrowRight, Layers, AlertCircle, RotateCcw } from 'lucide-react';
+import { Merge, GitBranch, Check, ChevronRight, Loader2, CheckCircle2, ArrowRight, Layers, AlertCircle, RotateCcw, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/shared/Button';
@@ -295,9 +295,6 @@ export function MergeModal({ variant }: MergeModalProps) {
     return (
       <Modal open={open} onClose={closeModal} title="New draft" size="sm">
         <div className="space-y-4">
-          <p className="text-xs text-ink-muted leading-relaxed">
-            Start a completely fresh draft — not branched from anything.
-          </p>
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Draft name</label>
             <input
@@ -316,8 +313,8 @@ export function MergeModal({ variant }: MergeModalProps) {
               onClick={handleCreateDraft}
               loading={loading}
               disabled={!newName.trim()}
-              className="flex-1"
-              icon={<GitBranch size={14} />}
+              className="flex-1 !bg-ink-primary !text-canvas hover:!opacity-80"
+              icon={<Plus size={14} />}
             >
               Create draft
             </Button>
@@ -331,7 +328,7 @@ export function MergeModal({ variant }: MergeModalProps) {
 
   if (variant === 'newBranch') {
     return (
-      <Modal open={open} onClose={closeModal} title="New version" size="sm">
+      <Modal open={open} onClose={closeModal} title="Add branch" size="sm">
         <div className="space-y-4">
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Based on</label>

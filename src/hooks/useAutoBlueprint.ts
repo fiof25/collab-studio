@@ -5,9 +5,8 @@ import type { ProjectFile } from '@/types/branch';
 const SERVER_URL = 'http://localhost:3001';
 
 /**
- * Auto-generates blueprints for any branch that has code but no blueprint yet.
- * Runs once on mount, then re-runs when new branches without blueprints appear.
- * Requests are staggered by 600ms to stay within rate limits.
+ * Auto-generates/regenerates blueprints whenever a branch's latest checkpoint changes.
+ * Tracks branchId → lastCheckpointId so re-generation fires on every new checkpoint.
  */
 export function useAutoBlueprint() {
   const branches = useProjectStore((s) => s.project?.branches);
@@ -15,26 +14,33 @@ export function useAutoBlueprint() {
   const updateBlueprint = useProjectStore((s) => s.updateBlueprint);
   const updateBranch = useProjectStore((s) => s.updateBranch);
 
-  // Track which branch IDs we've already queued so we don't duplicate on re-render
-  const queued = useRef(new Set<string>());
+  // Track branchId -> last checkpoint ID that was queued for generation
+  const queued = useRef(new Map<string, string>());
+
+  // Fingerprint changes whenever any branch gains a new checkpoint
+  const fingerprint = branches
+    ?.map((b) => `${b.id}:${b.checkpoints.at(-1)?.id ?? ''}`)
+    .join('|') ?? '';
 
   useEffect(() => {
     if (!branches) return;
 
-    // Find branches with code but no blueprint, not yet queued
     const toGenerate = branches.filter((b) => {
-      if (queued.current.has(b.id)) return false;
-      if (b.blueprint) return false;
       const ckpt = b.checkpoints.at(-1);
-      return !!(ckpt?.files?.length || ckpt?.codeSnapshot);
+      if (!ckpt?.id) return false;
+      // Skip if we already queued this exact checkpoint
+      if (queued.current.get(b.id) === ckpt.id) return false;
+      return !!(ckpt.files?.length || ckpt.codeSnapshot);
     });
 
     if (toGenerate.length === 0) return;
 
-    // Mark all as queued immediately so re-renders don't re-queue them
-    toGenerate.forEach((b) => queued.current.add(b.id));
+    // Mark as queued immediately to prevent duplicate requests on re-render
+    toGenerate.forEach((b) => {
+      const ckptId = b.checkpoints.at(-1)!.id;
+      queued.current.set(b.id, ckptId);
+    });
 
-    // Stagger requests by 600ms each
     toGenerate.forEach((branch, i) => {
       setTimeout(async () => {
         const ckpt = branch.checkpoints.at(-1);
@@ -80,5 +86,5 @@ export function useAutoBlueprint() {
       }, i * 600);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches?.length]);
+  }, [fingerprint]);
 }

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GitBranch, MessageCircle, Trash2 } from 'lucide-react';
+import { Plus, MessageCircle, Trash2 } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { nanoid } from 'nanoid';
@@ -73,8 +73,8 @@ export function BranchActions({ branchId }: BranchActionsProps) {
         onClick={handleFork}
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
       >
-        <GitBranch size={15} />
-        New version
+        <Plus size={15} />
+        Add branch
       </button>
 
       {!isRoot && (
