@@ -160,8 +160,8 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                 }}
               />
             ) : (
-              <div className="w-full h-full bg-surface-2 flex items-center justify-center">
-                <Camera size={18} className="text-ink-muted" />
+              <div className="w-full h-full bg-white flex items-center justify-center">
+                <Camera size={18} className="text-gray-300" />
               </div>
             )}
           </div>
@@ -228,7 +228,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                 onClick={startEditDesc}
                 title="Click to edit description"
               >
-                {data.description || <span className="text-ink-muted opacity-40 italic">Add description…</span>}
+                {data.description || <span className="text-ink-muted opacity-40">Add description…</span>}
               </p>
             )}
 

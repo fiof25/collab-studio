@@ -100,8 +100,8 @@ function ProjectCard({
             }}
           />
         ) : (
-          <div className="w-full h-full bg-surface-2 flex items-center justify-center">
-            <Camera size={20} className="text-ink-muted" />
+          <div className="w-full h-full bg-white flex items-center justify-center">
+            <Camera size={20} className="text-gray-300" />
           </div>
         )}
       </div>

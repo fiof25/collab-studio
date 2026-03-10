@@ -30,7 +30,7 @@
     height: 100%;
     background-color: rgb(var(--canvas));
     color: rgb(var(--ink-primary));
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Google Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

@@ -8,8 +8,24 @@ const emptyCollabProject: Project = {
   description: '',
   createdAt: Date.now() - 1000 * 60 * 6,
   updatedAt: Date.now(),
-  rootBranchId: '',
-  branches: [],
+  rootBranchId: 'branch_draft_01',
+  branches: [
+    {
+      id: 'branch_draft_01',
+      name: 'main',
+      description: '',
+      parentId: null,
+      status: 'active',
+      color: '#8B5CF6',
+      createdAt: Date.now() - 1000 * 60 * 6,
+      updatedAt: Date.now(),
+      collaborators: [],
+      tags: [],
+      position: { x: 400, y: 200 },
+      checkpoints: [],
+      comments: [],
+    },
+  ],
 };
 
 interface ProjectsStore {

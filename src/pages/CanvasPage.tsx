@@ -21,18 +21,18 @@ export function CanvasPage() {
     <div className="flex flex-col h-full bg-canvas">
       <TopNav
         right={
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Global comments button */}
             <button
               onClick={toggleGlobalCommentsPanel}
               title="All comments"
-              className={`relative flex items-center justify-center w-8 h-8 rounded-xl transition-colors ${
+              className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors ${
                 globalCommentsPanelOpen
                   ? 'bg-accent-violet text-white'
                   : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
               }`}
             >
-              <MessageCircle size={15} />
+              <MessageCircle size={17} />
               {openCommentCount > 0 && !globalCommentsPanelOpen && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-accent-violet text-white text-[8px] font-bold flex items-center justify-center leading-none">
                   {openCommentCount > 9 ? '9+' : openCommentCount}
@@ -40,13 +40,11 @@ export function CanvasPage() {
               )}
             </button>
 
-            <div className="w-px h-4 bg-line mx-2" />
-
             <button
               onClick={() => openModal('newDraft')}
-              className="flex items-center gap-2 px-4 py-2 rounded-md bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-base font-medium transition-opacity"
             >
-              <Plus size={15} />
+              <Plus size={16} />
               New draft
             </button>
           </div>

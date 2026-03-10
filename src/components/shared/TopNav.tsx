@@ -34,7 +34,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
   };
 
   return (
-    <header className="h-12 flex items-center justify-between px-4 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
+    <header className="h-16 flex items-center justify-between px-6 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
       <div className="flex items-center gap-3 min-w-0">
         {showBack && !isCanvas && (
           <button
@@ -48,7 +48,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         {isCanvas && (
           <button
             onClick={() => navigate('/')}
-            className="text-sm font-semibold text-ink-primary hidden sm:block hover:opacity-70 transition-opacity"
+            className="text-base font-bold text-ink-primary hidden sm:block hover:opacity-70 transition-opacity"
           >
             Collab Studio
           </button>
@@ -67,12 +67,12 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
                   if (e.key === 'Enter') commitEdit();
                   if (e.key === 'Escape') setEditing(false);
                 }}
-                className="text-sm font-medium text-ink-primary bg-transparent border-b border-accent-violet outline-none w-40 truncate"
+                className="text-base font-medium text-ink-primary bg-transparent border-b border-accent-violet outline-none w-40 truncate"
               />
             ) : (
               <button
                 onClick={startEdit}
-                className="text-sm font-medium text-ink-secondary hover:text-ink-primary transition-colors truncate"
+                className="text-base font-medium text-ink-secondary hover:text-ink-primary transition-colors truncate"
               >
                 {project.name}
               </button>
@@ -83,18 +83,18 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
         {left}
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Tasks panel toggle */}
         <button
           onClick={toggleTaskPanel}
           title="Versions"
-          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
             taskPanelOpen
               ? 'bg-surface-3 text-ink-primary'
               : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
           }`}
         >
-          <ClipboardList size={15} />
+          <ClipboardList size={17} />
         </button>
 
         {right && <>{right}</>}
