@@ -47,10 +47,15 @@ export function MergeModal({ variant }: MergeModalProps) {
   const [step, setStep] = useState<MergeStep>('select');
 
   // branch selection
+  // contextBranchIds: branches pre-selected on canvas; falls back to sourceId/targetId legacy context
   const contextSourceId = modalContext?.sourceId as string | undefined;
   const contextTargetId = modalContext?.targetId as string | undefined;
-  const [sourceId, setSourceId] = useState(contextSourceId ?? '');
-  const [targetId, setTargetId] = useState(contextTargetId ?? '');
+  const contextBranchIds = (modalContext?.branchIds as string[] | undefined)
+    ?? (contextSourceId && contextTargetId ? [contextSourceId, contextTargetId] : undefined);
+
+  // baseId = the branch that stays as foundation; contributorId = the branch donating features
+  const [baseId, setBaseId] = useState(contextTargetId ?? '');
+  const [contributorId, setContributorId] = useState(contextSourceId ?? '');
 
   // feature selection (from source blueprint)
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<Set<string>>(new Set());
@@ -81,17 +86,22 @@ export function MergeModal({ variant }: MergeModalProps) {
   const branches = project?.branches ?? [];
   const activeBranches = branches.filter((b) => b.status === 'active' || b.status === 'merging');
 
-  const sourceBranch = branches.find((b) => b.id === sourceId);
-  const targetBranch = branches.find((b) => b.id === targetId);
+  // Only show branches that were selected on the canvas (or all active if opened without context)
+  const pickableBranches = contextBranchIds
+    ? branches.filter((b) => contextBranchIds.includes(b.id))
+    : activeBranches;
+
+  const baseBranch = branches.find((b) => b.id === baseId);
+  const contributorBranch = branches.find((b) => b.id === contributorId);
 
   // Sync when modal opens
   useEffect(() => {
     if (activeModal === 'merge') {
-      const src = contextSourceId ?? '';
-      const tgt = contextTargetId ?? '';
-      setSourceId(src);
-      setTargetId(tgt);
-      setStep(src && tgt ? 'features' : 'select');
+      const base = contextTargetId ?? '';
+      const contributor = contextSourceId ?? '';
+      setBaseId(base);
+      setContributorId(contributor);
+      setStep(base && contributor ? 'features' : 'select');
       setSelectedFeatureIds(new Set());
       setProgressLines([]);
       setMergeError(null);
@@ -120,7 +130,7 @@ export function MergeModal({ variant }: MergeModalProps) {
 
   // Trigger Scout when entering the qa step
   useEffect(() => {
-    if (step !== 'qa' || !sourceBranch || !targetBranch) return;
+    if (step !== 'qa' || !contributorBranch || !baseBranch) return;
     const controller = new AbortController();
     setScoutLoading(true);
     setScoutDone(false);
@@ -134,10 +144,10 @@ export function MergeModal({ variant }: MergeModalProps) {
 
     startScout(
       {
-        sourceFiles: getFiles(sourceBranch),
-        targetFiles: getFiles(targetBranch),
-        sourceBlueprint: sourceBranch.blueprint ?? null,
-        targetBlueprint: targetBranch.blueprint ?? null,
+        sourceFiles: getFiles(contributorBranch),
+        targetFiles: getFiles(baseBranch),
+        sourceBlueprint: contributorBranch.blueprint ?? null,
+        targetBlueprint: baseBranch.blueprint ?? null,
         selectedFeatureIds: Array.from(selectedFeatureIds),
       },
       (event) => {
@@ -158,23 +168,23 @@ export function MergeModal({ variant }: MergeModalProps) {
 
     return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, sourceBranch?.id, targetBranch?.id, Array.from(selectedFeatureIds).sort().join(',')]);
+  }, [step, contributorBranch?.id, baseBranch?.id, Array.from(selectedFeatureIds).sort().join(',')]);
 
-  // Toggle branch selection (picker mode)
+  // Clicking a branch in the select step sets it as base; clicking again deselects
   const handleBranchClick = (id: string) => {
-    if (sourceId === id) {
-      setSourceId(targetId);
-      setTargetId('');
-    } else if (targetId === id) {
-      setTargetId('');
-    } else if (!sourceId) {
-      setSourceId(id);
-    } else if (!targetId) {
-      setTargetId(id);
+    if (baseId === id) {
+      setBaseId('');
+      setContributorId('');
+    } else {
+      setBaseId(id);
+      // The contributor is whichever pickable branch isn't the base
+      // (for 2-branch case; with more branches this would be the first non-base)
+      const others = pickableBranches.filter((b) => b.id !== id);
+      setContributorId(others[0]?.id ?? '');
     }
   };
 
-  const sourceFeatures: BlueprintFeature[] = sourceBranch?.blueprint?.features ?? [];
+  const contributorFeatures: BlueprintFeature[] = contributorBranch?.blueprint?.features ?? [];
 
   const toggleFeature = (id: string) => {
     setSelectedFeatureIds((prev) => {
@@ -187,7 +197,7 @@ export function MergeModal({ variant }: MergeModalProps) {
   const addProgress = (line: string) => setProgressLines((p) => [...p, line]);
 
   const handleExecuteMerge = async () => {
-    if (!sourceBranch || !targetBranch) return;
+    if (!contributorBranch || !baseBranch) return;
     setStep('executing');
     setProgressLines([]);
     setMergeError(null);
@@ -196,16 +206,16 @@ export function MergeModal({ variant }: MergeModalProps) {
       branch.checkpoints.at(-1)?.files ??
       [{ path: 'index.html', content: branch.checkpoints.at(-1)?.codeSnapshot ?? '', language: 'html' }];
 
-    let mergedFiles: ProjectFile[] = getFiles(targetBranch);
+    let mergedFiles: ProjectFile[] = getFiles(baseBranch);
 
     await executeMerge(
       {
-        sourceFiles: getFiles(sourceBranch),
-        targetFiles: getFiles(targetBranch),
+        sourceFiles: getFiles(contributorBranch),
+        targetFiles: getFiles(baseBranch),
         plan: scoutPlan,
         answers: questionAnswers,
         selectedFeatureIds: Array.from(selectedFeatureIds),
-        sourceBlueprint: sourceBranch.blueprint ?? null,
+        sourceBlueprint: contributorBranch.blueprint ?? null,
       },
       (event) => {
         if (event.type === 'progress') addProgress(event.message);
@@ -218,10 +228,10 @@ export function MergeModal({ variant }: MergeModalProps) {
     await delay(200);
 
     const mergedCode = mergedFiles.find((f) => f.path === 'index.html')?.content ?? '';
-    const mergedName = `Merge: ${toDisplayName(sourceBranch.name)} → ${toDisplayName(targetBranch.name)}`;
-    const child = createBranch(targetBranch.id, mergedName, '');
+    const mergedName = `Merge: ${toDisplayName(contributorBranch.name)} → ${toDisplayName(baseBranch.name)}`;
+    const child = createBranch(baseBranch.id, mergedName, '');
     updateBranch(child.id, {
-      mergeParentIds: [sourceBranch.id],
+      mergeParentIds: [contributorBranch.id],
       checkpoints: [
         {
           id: child.checkpoints[0]?.id ?? 'ckpt_merge',
@@ -244,7 +254,7 @@ export function MergeModal({ variant }: MergeModalProps) {
       body: JSON.stringify({
         branchId: child.id,
         branchName: child.name,
-        parentBranchName: targetBranch.name,
+        parentBranchName: baseBranch.name,
         files: mergedFiles,
       }),
     })
@@ -409,21 +419,23 @@ export function MergeModal({ variant }: MergeModalProps) {
         {step === 'select' && (
           <div className="space-y-4">
             <p className="text-xs text-ink-muted">
-              Pick a <span className="text-accent-violet font-medium">source</span> (features to bring in) and a{' '}
-              <span className="text-ink-secondary font-medium">target</span> (base to merge into).
+              {baseId
+                ? <>
+                    <span className="text-accent-violet font-medium">Base</span> chosen — the other{' '}
+                    {pickableBranches.length - 1 === 1 ? 'version' : 'versions'} will contribute features to it.
+                  </>
+                : 'Pick the version to build on. The others will automatically contribute features to it.'}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {activeBranches.map((b) => {
-                const isSource = sourceId === b.id;
-                const isTarget = targetId === b.id;
-                const bothPicked = !!(sourceId && targetId);
-                const role: 'source' | 'target' | null = isSource ? 'source' : isTarget ? 'target' : null;
+              {pickableBranches.map((b) => {
+                const isBase = baseId === b.id;
+                const isContributor = !isBase && !!baseId;
+                const role: 'base' | 'contributor' | null = isBase ? 'base' : isContributor ? 'contributor' : null;
                 return (
                   <BlendBranchCard
                     key={b.id}
                     branch={b}
-                    selected={isSource || isTarget}
-                    disabled={bothPicked && !isSource && !isTarget}
+                    selected={isBase}
                     role={role}
                     onClick={() => handleBranchClick(b.id)}
                   />
@@ -435,7 +447,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               <Button
                 variant="primary"
                 onClick={() => setStep('features')}
-                disabled={!sourceId || !targetId}
+                disabled={!baseId || !contributorId}
                 icon={<ArrowRight size={14} />}
               >
                 Next
@@ -445,42 +457,42 @@ export function MergeModal({ variant }: MergeModalProps) {
         )}
 
         {/* ── Step: features ── */}
-        {step === 'features' && sourceBranch && targetBranch && (
+        {step === 'features' && contributorBranch && baseBranch && (
           <div className="space-y-4">
             <p className="text-xs text-ink-muted">
               Select which features from{' '}
-              <span className="text-accent-violet font-medium">{toDisplayName(sourceBranch.name)}</span>{' '}
-              to merge into{' '}
-              <span className="text-ink-secondary font-medium">{toDisplayName(targetBranch.name)}</span>.
+              <span className="text-accent-violet font-medium">{toDisplayName(contributorBranch.name)}</span>{' '}
+              to bring into{' '}
+              <span className="text-ink-secondary font-medium">{toDisplayName(baseBranch.name)}</span>.
             </p>
 
             <div className="flex gap-4 min-h-[420px]">
-              {/* Left: source preview + overlay */}
+              {/* Left: contributor preview + overlay */}
               <div className="flex-1 flex flex-col gap-2 min-w-0">
                 <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">
-                  Source — {toDisplayName(sourceBranch.name)}
+                  Contributor — {toDisplayName(contributorBranch.name)}
                 </p>
                 <SourcePreviewWithOverlay
-                  branch={sourceBranch}
-                  features={sourceFeatures}
+                  branch={contributorBranch}
+                  features={contributorFeatures}
                   selectedIds={selectedFeatureIds}
                   onToggle={toggleFeature}
                 />
               </div>
 
-              {/* Right: feature checklist + target thumbnail */}
+              {/* Right: feature checklist + base thumbnail */}
               <div className="w-64 flex-shrink-0 flex flex-col gap-4">
                 {/* Feature checklist */}
                 <div className="flex-1 flex flex-col gap-2">
                   <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">Features to import</p>
-                  {sourceFeatures.length === 0 ? (
+                  {contributorFeatures.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line py-8 px-4 text-center">
                       <Layers size={18} className="text-ink-muted/50" />
                       <p className="text-xs text-ink-muted">No blueprint yet. Generate one in the IDE to unlock feature selection.</p>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[300px] pr-1">
-                      {sourceFeatures.map((f) => {
+                      {contributorFeatures.map((f) => {
                         const checked = selectedFeatureIds.has(f.id);
                         return (
                           <button
@@ -512,12 +524,12 @@ export function MergeModal({ variant }: MergeModalProps) {
                   )}
                 </div>
 
-                {/* Target preview */}
+                {/* Base preview */}
                 <div className="flex flex-col gap-2">
                   <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">
-                    Target — {toDisplayName(targetBranch.name)}
+                    Base — {toDisplayName(baseBranch.name)}
                   </p>
-                  <TargetThumbnail branch={targetBranch} />
+                  <TargetThumbnail branch={baseBranch} />
                 </div>
               </div>
             </div>
@@ -536,7 +548,7 @@ export function MergeModal({ variant }: MergeModalProps) {
         )}
 
         {/* ── Step: qa ── */}
-        {step === 'qa' && sourceBranch && targetBranch && (
+        {step === 'qa' && contributorBranch && baseBranch && (
           <div className="space-y-4">
             {/* Merge summary card */}
             <div className="rounded-2xl border border-line bg-surface-2 p-4 space-y-3">
@@ -546,9 +558,9 @@ export function MergeModal({ variant }: MergeModalProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-ink-primary">
-                    {toDisplayName(sourceBranch.name)}{' '}
+                    {toDisplayName(contributorBranch.name)}{' '}
                     <span className="text-ink-muted font-normal">→</span>{' '}
-                    {toDisplayName(targetBranch.name)}
+                    {toDisplayName(baseBranch.name)}
                   </p>
                   <p className="text-xs text-ink-muted mt-0.5">
                     {selectedFeatureIds.size > 0
@@ -559,7 +571,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               </div>
               {selectedFeatureIds.size > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {sourceFeatures
+                  {contributorFeatures
                     .filter((f) => selectedFeatureIds.has(f.id))
                     .map((f) => (
                       <span key={f.id} className="px-2 py-0.5 rounded-full bg-accent-violet/15 text-accent-violet text-[11px] font-medium">
@@ -746,14 +758,12 @@ export function MergeModal({ variant }: MergeModalProps) {
 function BlendBranchCard({
   branch,
   selected,
-  disabled,
   role,
   onClick,
 }: {
   branch: Branch;
   selected: boolean;
-  disabled: boolean;
-  role: 'source' | 'target' | null;
+  role: 'base' | 'contributor' | null;
   onClick: () => void;
 }) {
   const latestCode =
@@ -763,13 +773,12 @@ function BlendBranchCard({
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
       className={clsx(
         'w-full text-left rounded-2xl border overflow-hidden transition-all',
         selected
           ? 'border-accent-violet ring-1 ring-accent-violet/40'
-          : disabled
-          ? 'border-line opacity-40 cursor-not-allowed'
+          : role === 'contributor'
+          ? 'border-line/60 ring-1 ring-line/30'
           : 'border-line hover:border-line-accent'
       )}
     >
@@ -791,12 +800,12 @@ function BlendBranchCard({
           <div
             className={clsx(
               'absolute top-2 left-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold',
-              role === 'source'
+              role === 'base'
                 ? 'bg-accent-violet text-white'
-                : 'bg-black/60 text-white/90'
+                : 'bg-black/50 text-white/80'
             )}
           >
-            {role}
+            {role === 'base' ? 'Base' : 'Contributor'}
           </div>
         )}
         {selected && (
