@@ -4,51 +4,57 @@ const MODEL = 'claude-haiku-4-5-20251001';
 
 const CONVERSATION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
-A user just asked an AI to make a change to their web prototype. Your job: write a SHORT description for the canvas node that accurately captures the most salient thing that changed in this iteration.
+A user just chatted with an AI to build or update a web prototype. Your job: write a SHORT description for the canvas node that captures what this prototype IS and what it's for — based on the conversation.
 
 Rules:
-- Lead with the KEY CHANGE from this iteration — not a generic page description
+- Focus on PURPOSE and CONTENT, not visual design or UI elements
+- Lead with what the page/app is about: the topic, goal, or user need it serves
 - 8–16 words max
-- Be specific: name the actual UI element, feature, or visual change
-- Examples of GOOD descriptions (iteration-aware):
-  - "Added dark sidebar nav with icon links and collapsed state"
-  - "Switched hero to split layout with product screenshot on right"
-  - "Added pricing section with 3-tier cards and toggle for annual billing"
-  - "Replaced placeholder copy with real SaaS content and updated color to indigo"
-  - "Added interactive chart showing weekly revenue with hover tooltips"
-- No technical jargon (no 'CSS', 'div', 'HTML')
-- No quotes or trailing punctuation
+- Examples of GOOD descriptions:
+  - "BTS fan page with member profiles, discography, and tour dates"
+  - "SaaS landing page for an AI-powered code review tool"
+  - "Personal portfolio showcasing design work and a contact form"
+  - "E-commerce storefront for handmade ceramics with product listings"
+  - "Dashboard for tracking team sprint velocity and open issues"
+  - "Pricing page for a subscription app with three tiers"
+- DO NOT describe visual design, colors, layout, or UI components
+- DO NOT say things like "dark gradient hero" or "3-column card grid"
+- No technical jargon, no quotes, no trailing punctuation
 
 Respond with ONLY the description.`;
 
 const VISION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
-Look at this screenshot of a web prototype and write a SHORT visual description for a canvas card.
+Look at this screenshot of a web prototype and write a SHORT description for a canvas card that captures what this page IS and what it's for.
 
 Rules:
-- Describe what you SEE — layout, color palette, key UI sections
-- 10–20 words max
+- Focus on PURPOSE and CONTENT — what is this page about?
+- 10–16 words max
 - Examples:
-  - "Dark navy SaaS landing page with sticky nav, hero, 3-column features, and pricing"
-  - "White minimal portfolio with centered hero, project grid, and contact form"
-  - "Gradient purple dashboard with sidebar nav, metric cards, and data table"
-- No technical jargon
-- No quotes or punctuation at the end
+  - "BTS fan page with member profiles and tour dates"
+  - "AI startup landing page with feature overview and pricing"
+  - "Portfolio site for a freelance photographer"
+  - "Team analytics dashboard for tracking sprint progress"
+- DO NOT describe colors, layouts, fonts, or UI patterns
+- No technical jargon, no quotes, no trailing punctuation
 
 Respond with ONLY the description.`;
 
-const CODE_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool called Collab Studio.
+const CODE_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
-Your job: read a web prototype's code and generate a SHORT visual description for display on a canvas card.
+Read this web prototype's code and write a SHORT description for a canvas card that captures what this page IS and what it's for.
 
 Rules:
-- Describe what the user SEES, not the code — visual first
-- 10–20 words max
-- Mention: color palette, layout type, key sections visible
-- No technical jargon (no 'CSS', 'div', 'HTML', 'inline styles')
-- No quotes in output
+- Focus on PURPOSE and CONTENT — what is this page/app about?
+- 10–16 words max
+- Examples:
+  - "Startup landing page for a project management SaaS tool"
+  - "BTS fan site with member bios and latest album info"
+  - "Recipe blog homepage with featured dishes and category filters"
+- DO NOT describe colors, layout types, or UI components
+- No technical jargon (no 'CSS', 'HTML', 'div'), no quotes
 
-Respond with ONLY the description. No punctuation at the end. No quotes.`;
+Respond with ONLY the description. No punctuation at the end.`;
 
 export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBase64, userPrompt, aiSummary }) {
   try {
