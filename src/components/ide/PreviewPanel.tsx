@@ -127,7 +127,11 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
               <MessageCircle size={15} />
             </button>
             <button
-              onClick={() => setRefreshKey((k) => k + 1)}
+              onClick={() => {
+                if (!iframeRef.current || !latestCode) return;
+                iframeRef.current.srcdoc = '';
+                requestAnimationFrame(() => { if (iframeRef.current) iframeRef.current.srcdoc = latestCode; });
+              }}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
               title="Refresh preview"
             >

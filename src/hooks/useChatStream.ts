@@ -16,6 +16,8 @@ async function triggerAgents(
   updateBlueprint: (id: string, bp: import('@/types/blueprint').Blueprint) => void,
   updateBranch: (id: string, patch: Parameters<ReturnType<typeof useProjectStore.getState>['updateBranch']>[1]) => void,
   screenshotBase64?: string | null,
+  userPrompt?: string,
+  aiSummary?: string,
 ) {
   // Run both in parallel — failures are silently ignored (server may not be running)
   const [bpRes, snapRes] = await Promise.allSettled([
@@ -27,7 +29,7 @@ async function triggerAgents(
     fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branchId, branchName, files, screenshotBase64 }),
+      body: JSON.stringify({ branchId, branchName, files, screenshotBase64, userPrompt, aiSummary }),
     }).then((r) => r.json()),
   ]);
 
@@ -231,9 +233,11 @@ export function useChatStream(branchId: string) {
           const parentBranch = latestBranch.parentId
             ? getBranchById(latestBranch.parentId)
             : undefined;
+          // Extract AI's plain-English summary (everything before the code block)
+          const aiSummary = fullContent.replace(/```html[\s\S]*?```/g, '').trim().slice(0, 300) || undefined;
           // Capture screenshot for vision-based description (best-effort)
           const screenshotBase64 = await captureHtmlScreenshot(codeGenerated).catch(() => null);
-          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch, screenshotBase64).catch(() => {});
+          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch, screenshotBase64, trimmed, aiSummary).catch(() => {});
         }
       }
 

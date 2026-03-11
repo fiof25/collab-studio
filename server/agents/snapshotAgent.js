@@ -2,6 +2,25 @@ import { callClaude } from './tools.js';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
+const CONVERSATION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
+
+A user just asked an AI to make a change to their web prototype. Your job: write a SHORT description for the canvas node that accurately captures the most salient thing that changed in this iteration.
+
+Rules:
+- Lead with the KEY CHANGE from this iteration — not a generic page description
+- 8–16 words max
+- Be specific: name the actual UI element, feature, or visual change
+- Examples of GOOD descriptions (iteration-aware):
+  - "Added dark sidebar nav with icon links and collapsed state"
+  - "Switched hero to split layout with product screenshot on right"
+  - "Added pricing section with 3-tier cards and toggle for annual billing"
+  - "Replaced placeholder copy with real SaaS content and updated color to indigo"
+  - "Added interactive chart showing weekly revenue with hover tooltips"
+- No technical jargon (no 'CSS', 'div', 'HTML')
+- No quotes or trailing punctuation
+
+Respond with ONLY the description.`;
+
 const VISION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
 Look at this screenshot of a web prototype and write a SHORT visual description for a canvas card.
@@ -31,12 +50,23 @@ Rules:
 
 Respond with ONLY the description. No punctuation at the end. No quotes.`;
 
-export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBase64 }) {
+export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBase64, userPrompt, aiSummary }) {
   try {
     let claudePayload;
 
-    if (screenshotBase64) {
-      // Vision-based: describe the rendered screenshot
+    if (userPrompt || aiSummary) {
+      // Conversation-based: most accurate — describes what actually changed this iteration
+      const context = [
+        userPrompt && `User request: "${userPrompt}"`,
+        aiSummary && `AI summary of changes: "${aiSummary}"`,
+      ].filter(Boolean).join('\n');
+
+      claudePayload = {
+        system: CONVERSATION_PROMPT,
+        messages: [{ role: 'user', content: context }],
+      };
+    } else if (screenshotBase64) {
+      // Vision-based fallback: describe the rendered screenshot
       claudePayload = {
         system: VISION_PROMPT,
         messages: [{
@@ -48,7 +78,7 @@ export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBa
         }],
       };
     } else {
-      // Fallback: describe from HTML source
+      // Last resort: describe from HTML source
       const mainFile = files.find((f) => f.path === 'index.html') ?? files[0];
       if (!mainFile) return { success: false, error: 'No files to analyze' };
 

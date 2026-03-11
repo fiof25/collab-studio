@@ -67,7 +67,7 @@ blueprintRouter.post('/generate', async (req, res) => {
 // Body: { branchId, branchName, files: ProjectFile[] }
 // Returns: { success, description } | { success: false, error }
 blueprintRouter.post('/snapshot', async (req, res) => {
-  const { branchId, branchName, files, screenshotBase64 } = req.body;
+  const { branchId, branchName, files, screenshotBase64, userPrompt, aiSummary } = req.body;
 
   if (!branchId || !branchName || !Array.isArray(files) || files.length === 0) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -75,9 +75,13 @@ blueprintRouter.post('/snapshot', async (req, res) => {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
-    return res.json({ success: true, description: `${branchName} — prototype` });
+    // Mock: use the user prompt directly if available
+    const description = userPrompt
+      ? userPrompt.slice(0, 60) + (userPrompt.length > 60 ? '…' : '')
+      : `${branchName} — prototype`;
+    return res.json({ success: true, description });
   }
 
-  const result = await runSnapshotAgent({ branchId, branchName, files, apiKey, screenshotBase64 });
+  const result = await runSnapshotAgent({ branchId, branchName, files, apiKey, screenshotBase64, userPrompt, aiSummary });
   res.json(result);
 });

@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas';
 /** Renders HTML in a hidden same-origin iframe and returns a base64 JPEG screenshot. */
 export async function captureHtmlScreenshot(html: string): Promise<string | null> {
   return new Promise((resolve) => {
+    let settled = false;
     const iframe = document.createElement('iframe');
     iframe.style.cssText =
       'position:fixed;top:-9999px;left:-9999px;width:1280px;height:720px;border:none;visibility:hidden;';
@@ -10,6 +11,16 @@ export async function captureHtmlScreenshot(html: string): Promise<string | null
     document.body.appendChild(iframe);
 
     const cleanup = () => { try { document.body.removeChild(iframe); } catch { /* noop */ } };
+    const settle = (result: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      cleanup();
+      resolve(result);
+    };
+
+    // Bail out after 8s — CDN scripts in generated HTML can stall onload indefinitely
+    const timeoutId = setTimeout(() => settle(null), 8000);
 
     iframe.onload = async () => {
       try {
@@ -23,15 +34,13 @@ export async function captureHtmlScreenshot(html: string): Promise<string | null
           logging: false,
         });
         const base64 = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
-        cleanup();
-        resolve(base64);
+        settle(base64);
       } catch {
-        cleanup();
-        resolve(null);
+        settle(null);
       }
     };
 
-    iframe.onerror = () => { cleanup(); resolve(null); };
+    iframe.onerror = () => settle(null);
     iframe.srcdoc = html;
   });
 }

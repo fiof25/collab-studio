@@ -11,7 +11,7 @@ interface ChatMessageProps {
 }
 
 function renderContent(content: string) {
-  return content.replace(/```html\n[\s\S]*?```/g, '').trim();
+  return content.replace(/```[\w+.-]+[ \t]*\r?\n[\s\S]*?```/g, '').trim();
 }
 
 function isWritingCode(content: string) {
@@ -42,15 +42,12 @@ export const ChatMessage = memo(function ChatMessage({ message, isLastAssistant,
               : 'bg-surface-2 text-ink-secondary rounded-tl-sm'
           )}
         >
-          {writingCode ? (
-            <>
-              {textBeforeCode && <span>{textBeforeCode}</span>}
-              <ThinkingDots />
-            </>
+          {message.isStreaming ? (
+            <ThinkingDots />
           ) : (
             <>
-              {displayContent || (message.isStreaming ? '' : '…')}
-              {message.isStreaming && isLastAssistant && (
+              {displayContent || '…'}
+              {isLastAssistant && writingCode && (
                 <span className="inline-block w-0.5 h-3.5 bg-white/40 ml-0.5 align-middle animate-pulse" />
               )}
             </>
