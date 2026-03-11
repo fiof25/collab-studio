@@ -7,9 +7,10 @@ import { clsx } from 'clsx';
 interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'merge';
+  bare?: boolean;
 }
 
 const sizeStyles = {
@@ -19,9 +20,10 @@ const sizeStyles = {
   xl: 'max-w-3xl',
   '2xl': 'max-w-4xl',
   '3xl': 'max-w-5xl',
+  merge: 'max-w-[760px]',
 };
 
-export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, size = 'md', bare = false }: ModalProps) {
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -34,7 +36,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center px-2 py-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -48,7 +50,8 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
           {/* Dialog */}
           <motion.div
             className={clsx(
-              'relative w-full bg-surface-1 border border-line rounded-3xl shadow-float',
+              'relative w-full',
+              !bare && 'bg-surface-1 border border-line rounded-3xl shadow-float',
               sizeStyles[size]
             )}
             initial={{ scale: 0.95, opacity: 0, y: 8 }}
@@ -56,19 +59,23 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
             exit={{ scale: 0.95, opacity: 0, y: 8 }}
             transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-line">
-              <h2 className="text-base font-semibold text-ink-primary">{title}</h2>
-              <button
-                onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
+            {bare ? children : (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-line">
+                  <h2 className="text-base font-semibold text-ink-primary">{title}</h2>
+                  <button
+                    onClick={onClose}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
 
-            {/* Body */}
-            <div className="p-6">{children}</div>
+                {/* Body */}
+                <div className="p-6">{children}</div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}

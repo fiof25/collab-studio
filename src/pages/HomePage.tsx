@@ -1,5 +1,6 @@
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useProjectsStore } from '@/store/useProjectsStore';
 
@@ -62,10 +63,8 @@ function toHomeProject(p: Project): HomeProject {
 
 // ─── Constants for iframe scaling ─────────────────────────────────────────────
 
-const CARD_SCALE = 0.28;
 const CARD_IFRAME_W = 960;
-const CARD_PREVIEW_H = 130;
-const CARD_IFRAME_H = Math.ceil(CARD_PREVIEW_H / CARD_SCALE);
+const CARD_PREVIEW_H = 180;
 
 // ─── Project Card ─────────────────────────────────────────────────────────────
 
@@ -76,14 +75,28 @@ function ProjectCard({
   project: HomeProject;
   onOpen: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => setContainerWidth(entries[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = containerWidth > 0 ? containerWidth / CARD_IFRAME_W : 0.32;
+  const iframeH = Math.ceil(CARD_PREVIEW_H / scale);
+
   return (
     <div
-      className="rounded-xl overflow-hidden bg-surface-1 border cursor-pointer group transition-all duration-150"
+      className="rounded-md overflow-hidden bg-surface-1 border cursor-pointer group transition-all duration-150 hover:border-line-accent"
       style={{ borderColor: 'rgb(var(--node-border))' }}
       onClick={onOpen}
     >
       {/* Preview */}
-      <div className="overflow-hidden bg-surface-2 flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
+      <div ref={containerRef} className="overflow-hidden bg-surface-2 flex-shrink-0" style={{ height: CARD_PREVIEW_H }}>
         {project.preview ? (
           <iframe
             srcDoc={project.preview}
@@ -91,8 +104,8 @@ function ProjectCard({
             sandbox="allow-scripts"
             style={{
               width: CARD_IFRAME_W,
-              height: CARD_IFRAME_H,
-              transform: `scale(${CARD_SCALE})`,
+              height: iframeH,
+              transform: `scale(${scale})`,
               transformOrigin: 'top left',
               pointerEvents: 'none',
               border: 'none',
@@ -100,27 +113,23 @@ function ProjectCard({
             }}
           />
         ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center">
-            <Camera size={20} className="text-gray-300" />
-          </div>
+          <div className="w-full h-full bg-white" />
         )}
       </div>
 
       {/* Info strip */}
-      <div className="px-2.5 pt-1.5 pb-2 flex flex-col gap-1">
+      <div className="px-3 pt-2 pb-2.5 flex flex-col gap-1 border-t border-line">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-ink-primary truncate">
+          <span className="text-sm font-semibold text-ink-primary truncate">
             {project.name}
           </span>
           <ChevronRight
-            size={12}
+            size={13}
             className="text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
           />
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-2xs text-ink-muted">
-            <span>{formatRelativeTime(project.updatedAt)}</span>
-          </div>
+          <span className="text-xs text-ink-muted">{formatRelativeTime(project.updatedAt)}</span>
           <AvatarGroup collaborators={project.collaborators} max={3} size="xs" />
         </div>
       </div>
@@ -139,9 +148,9 @@ export function HomePage() {
   return (
     <div className="flex flex-col h-full bg-canvas">
       {/* Header */}
-      <header className="h-12 flex items-center justify-between px-4 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
+      <header className="h-16 flex items-center justify-between px-6 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-ink-primary">Collab Studio</span>
+          <span className="text-base font-bold text-ink-primary">Collab Studio</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -151,7 +160,7 @@ export function HomePage() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-8 py-6 grid grid-cols-[240px_1fr] gap-8 items-start">
+        <div className="max-w-[1400px] mx-auto px-8 py-12 grid grid-cols-[240px_1fr] gap-16 items-start">
 
           {/* ── Left Sidebar ── */}
           <aside className="flex flex-col gap-5 sticky top-0">
@@ -166,7 +175,7 @@ export function HomePage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-ink-primary">Alice Kim</h2>
-                <p className="text-xs font-mono text-ink-muted">@alice</p>
+                <p className="text-xs font-google-sans text-ink-muted">@alice</p>
               </div>
               <p className="text-xs text-ink-secondary leading-relaxed">
                 Design lead · building collaborative tools for creative teams
@@ -208,6 +217,7 @@ export function HomePage() {
                 ))}
               </div>
             </div>
+
           </aside>
 
           {/* ── Right Content ── */}
@@ -215,8 +225,8 @@ export function HomePage() {
 
             {/* Projects */}
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-ink-primary">Recent Projects</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-ink-primary">Recent Projects</h3>
                 <button
                   onClick={() => navigate('/project')}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
@@ -225,7 +235,7 @@ export function HomePage() {
                   New project
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-6">
                 {homeProjects.map((p, i) => (
                   <ProjectCard
                     key={p.id}

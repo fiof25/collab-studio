@@ -85,14 +85,14 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full bg-surface-1">
       {/* Tab bar */}
-      <div className="flex items-center justify-between px-3 border-b border-line flex-shrink-0 h-10">
+      <div className="flex items-center justify-between px-4 border-b border-line flex-shrink-0 h-12">
         <div className="flex items-center gap-1">
           {(['preview', 'code', 'blueprint'] as ActiveTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors',
+                'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors',
                 activeTab === tab ? 'text-ink-primary bg-surface-2' : 'text-ink-muted hover:text-ink-secondary'
               )}
             >
@@ -441,15 +441,15 @@ function NewCommentPin({
       {/* Input popover */}
       <div
         className={clsx(
-          'absolute z-20 w-60 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.18)] border border-gray-100 overflow-hidden',
+          'absolute z-20 w-60 bg-surface-1 border border-line rounded-xl overflow-hidden',
           popoverBottom ? 'bottom-full mb-2' : 'top-full mt-2',
           popoverRight ? 'right-0' : 'left-0'
         )}
       >
-        <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-gray-100">
+        <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-line">
           <img src={DEMO_AUTHOR.avatarUrl} alt={DEMO_AUTHOR.name} className="w-5 h-5 rounded-full flex-shrink-0" />
           <span className="text-xs font-semibold" style={{ color: DEMO_AUTHOR.color }}>{DEMO_AUTHOR.name.split(' ')[0]}</span>
-          <button onClick={onCancel} className="ml-auto text-gray-300 hover:text-gray-500 transition-colors">
+          <button onClick={onCancel} className="ml-auto text-ink-muted hover:text-ink-primary transition-colors">
             <X size={11} />
           </button>
         </div>
@@ -463,14 +463,14 @@ function NewCommentPin({
           }}
           placeholder="Leave a comment…"
           rows={2}
-          className="w-full px-3 py-2 text-xs text-gray-700 placeholder-gray-300 resize-none outline-none leading-relaxed"
+          className="w-full px-3 py-2 text-xs text-ink-primary placeholder:text-ink-muted bg-surface-1 resize-none outline-none leading-relaxed"
         />
         <div className="flex items-center justify-between px-3 pb-2">
-          <span className="text-[10px] text-gray-300">⌘ Enter to post</span>
+          <span className="text-[10px] text-ink-muted">⌘ Enter to post</span>
           <button
             onClick={() => onSubmit(draft)}
             disabled={!draft.trim()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-accent-violet text-white text-[10px] font-semibold disabled:opacity-40 transition-opacity"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white text-[#0D0D12] text-[10px] font-semibold disabled:opacity-40 transition-opacity"
           >
             <Send size={9} />
             Post

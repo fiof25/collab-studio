@@ -59,7 +59,7 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                       if (e.key === 'Enter') commitRename(branch.id, branch.name);
                       if (e.key === 'Escape') setEditing(false);
                     }}
-                    className="text-sm font-semibold font-mono bg-transparent border-b border-white/30 text-ink-primary focus:outline-none max-w-[160px]"
+                    className="text-lg font-semibold font-mono bg-transparent border-b border-white/30 text-ink-primary focus:outline-none max-w-[200px]"
                   />
                 </div>
               ) : (
@@ -69,7 +69,7 @@ export function BranchBreadcrumb({ branchId }: BranchBreadcrumbProps) {
                   className="flex items-center gap-1.5 group/name"
                 >
                   <span
-                    className="text-sm font-semibold truncate max-w-[160px] text-ink-primary"
+                    className="text-lg font-semibold truncate max-w-[200px] text-ink-primary"
                   >
                     {toDisplayName(branch.name)}
                   </span>

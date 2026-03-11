@@ -28,6 +28,7 @@ interface ExecuteParams {
   answers: Record<string, string>;
   selectedFeatureIds: string[];
   sourceBlueprint: Blueprint | null;
+  instructions?: string;
 }
 
 export function useMergeStream() {

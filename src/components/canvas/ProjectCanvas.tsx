@@ -29,8 +29,8 @@ const nodeTypes: NodeTypes = { branchNode: BranchNode as NodeTypes[string] };
 const edgeTypes: EdgeTypes = { branchEdge: BranchEdge as EdgeTypes[string] };
 
 // Node bounding box dimensions (must match BranchNode constants)
-const NODE_W = 240;
-const NODE_H = 166; // approximate card height without hover chip
+const NODE_W = 420;
+const NODE_H = 240; // approximate card height without hover chip
 
 function getCenter(pos: { x: number; y: number }) {
   return { x: pos.x + NODE_W / 2, y: pos.y + NODE_H / 2 };
@@ -172,6 +172,7 @@ function FlowInner() {
         onNodeDragStop={handleNodeDragStop}
         onMoveEnd={handleMoveEnd}
         fitView={false}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.85 }}
         minZoom={0.2}
         maxZoom={2}
         nodesDraggable

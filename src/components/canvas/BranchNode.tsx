@@ -2,7 +2,7 @@ import { memo, useRef, useEffect, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Pencil, Merge, GitBranch, Trash2, Plus } from 'lucide-react';
+import { Pencil, Merge, Trash2, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -118,11 +118,10 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
       />
 
       <motion.div
-        layoutId={`branch-card-${data.branchId}`}
         whileHover={props.dragging ? {} : { scale: 1.02, y: -2 }}
         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
         className="cursor-pointer select-none group relative"
-        style={{ width: NODE_W }}
+        style={{ width: NODE_W, willChange: 'transform' }}
         onClick={handleClick}
       >
         {/* Card */}
@@ -160,9 +159,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                 }}
               />
             ) : (
-              <div className="w-full h-full bg-white flex items-center justify-center">
-                <Camera size={18} className="text-gray-300" />
-              </div>
+              <div className="w-full h-full bg-white" />
             )}
           </div>
 

@@ -67,7 +67,7 @@ blueprintRouter.post('/generate', async (req, res) => {
 // Body: { branchId, branchName, files: ProjectFile[] }
 // Returns: { success, description } | { success: false, error }
 blueprintRouter.post('/snapshot', async (req, res) => {
-  const { branchId, branchName, files } = req.body;
+  const { branchId, branchName, files, screenshotBase64 } = req.body;
 
   if (!branchId || !branchName || !Array.isArray(files) || files.length === 0) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -75,10 +75,9 @@ blueprintRouter.post('/snapshot', async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
-    // Mock: use branch name as a simple description placeholder
     return res.json({ success: true, description: `${branchName} — prototype` });
   }
 
-  const result = await runSnapshotAgent({ branchId, branchName, files, apiKey });
+  const result = await runSnapshotAgent({ branchId, branchName, files, apiKey, screenshotBase64 });
   res.json(result);
 });

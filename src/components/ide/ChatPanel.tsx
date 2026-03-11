@@ -86,16 +86,11 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
 
 function EmptyState({ branchName }: { branchName?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
-      <Sparkles size={20} className="text-ink-muted" />
-      <div>
-        <p className="text-sm font-medium text-ink-secondary mb-1">
-          {branchName ? `Vibe coding on "${branchName}"` : 'Start vibe coding'}
-        </p>
-        <p className="text-xs text-ink-muted leading-relaxed max-w-[240px]">
-          Describe what you want to change and AI will update the prototype live.
-        </p>
-      </div>
+    <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
+      <Sparkles size={28} className="text-ink-muted" />
+      <p className="text-sm font-medium text-ink-secondary leading-snug max-w-[260px]">
+        Start chatting with AI
+      </p>
     </div>
   );
 }

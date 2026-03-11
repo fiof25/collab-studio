@@ -53,7 +53,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <button
         onClick={handleComments}
         title="Comments"
@@ -62,9 +62,11 @@ export function BranchActions({ branchId }: BranchActionsProps) {
         <MessageCircle size={15} />
       </button>
 
+      <div className="w-px h-4 bg-line mx-1" />
+
       <button
         onClick={handleCheckpoint}
-        className="text-sm text-ink-muted hover:text-ink-primary transition-colors font-medium"
+        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface-1 border border-line text-sm font-medium text-ink-primary hover:bg-surface-2 transition-colors"
       >
         Save
       </button>

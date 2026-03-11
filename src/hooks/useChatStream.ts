@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { useChatStore } from '@/store/useChatStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import type { ProjectFile } from '@/types/branch';
+import { captureHtmlScreenshot } from '@/utils/captureScreenshot';
 
 const SERVER_URL = 'http://localhost:3001';
 
@@ -14,6 +15,7 @@ async function triggerAgents(
   files: ProjectFile[],
   updateBlueprint: (id: string, bp: import('@/types/blueprint').Blueprint) => void,
   updateBranch: (id: string, patch: Parameters<ReturnType<typeof useProjectStore.getState>['updateBranch']>[1]) => void,
+  screenshotBase64?: string | null,
 ) {
   // Run both in parallel — failures are silently ignored (server may not be running)
   const [bpRes, snapRes] = await Promise.allSettled([
@@ -25,7 +27,7 @@ async function triggerAgents(
     fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branchId, branchName, files }),
+      body: JSON.stringify({ branchId, branchName, files, screenshotBase64 }),
     }).then((r) => r.json()),
   ]);
 
@@ -229,7 +231,9 @@ export function useChatStream(branchId: string) {
           const parentBranch = latestBranch.parentId
             ? getBranchById(latestBranch.parentId)
             : undefined;
-          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch).catch(() => {});
+          // Capture screenshot for vision-based description (best-effort)
+          const screenshotBase64 = await captureHtmlScreenshot(codeGenerated).catch(() => null);
+          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch, screenshotBase64).catch(() => {});
         }
       }
 
