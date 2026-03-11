@@ -76,7 +76,7 @@ export function BranchActions({ branchId }: BranchActionsProps) {
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-sm font-medium transition-opacity"
       >
         <Plus size={15} />
-        Add branch
+        Add Branch
       </button>
 
       {!isRoot && (

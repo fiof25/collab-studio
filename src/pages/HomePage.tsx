@@ -182,20 +182,6 @@ export function HomePage() {
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="border-t border-line pt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-              {[
-                { label: 'Projects', value: '4' },
-                { label: 'Branches', value: '24' },
-                { label: 'Versions', value: '18' },
-                { label: 'Comments', value: '36' },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <div className="text-sm font-bold text-ink-primary">{value}</div>
-                  <div className="text-2xs text-ink-muted mt-0.5">{label}</div>
-                </div>
-              ))}
-            </div>
 
             {/* Online now */}
             <div className="border-t border-line pt-4">

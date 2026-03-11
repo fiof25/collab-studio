@@ -21,7 +21,7 @@ export function CanvasPage() {
     <div className="flex flex-col h-full bg-canvas">
       <TopNav
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {/* Global comments button */}
             <button
               onClick={toggleGlobalCommentsPanel}
@@ -45,7 +45,7 @@ export function CanvasPage() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-base font-medium transition-opacity"
             >
               <Plus size={16} />
-              New draft
+              New Root
             </button>
           </div>
         }

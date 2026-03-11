@@ -569,11 +569,11 @@ export function MergeModal({ variant }: MergeModalProps) {
         {/* Merge Instructions */}
         <div className="px-6 py-4 flex-shrink-0 border-b border-line">
           <textarea
-            className="w-full resize-none bg-surface-2 border border-line rounded-lg px-4 py-3 text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors"
+            className="w-full resize-none bg-surface-2 border border-line rounded-lg px-4 py-3 text-base text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors leading-relaxed"
             placeholder="E.g., Keep the Base's layout and navigation, but bring in the new hero section and color scheme from the other version."
             value={mergeInstructions}
             onChange={(e) => setMergeInstructions(e.target.value)}
-            rows={3}
+            rows={4}
             style={{ fontFamily: 'inherit' }}
           />
         </div>
