@@ -296,11 +296,11 @@ Collab Studio's merge system is powered by **four specialized agents**, each wit
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    COLLAB STUDIO                     │
+│                    COLLAB STUDIO                    │
 │                                                     │
 │  ┌─────────────┐  ┌─────────────┐                   │
-│  │  Snapshot    │  │  Blueprint  │                   │
-│  │  Agent       │  │  Agent      │                   │
+│  │  Snapshot   │  │  Blueprint  │                   │
+│  │  Agent      │  │  Agent      │                   │
 │  │             │  │             │                   │
 │  │ Generates   │  │ Keeps       │                   │
 │  │ visual      │  │ BLUEPRINT   │                   │
@@ -312,8 +312,8 @@ Collab Studio's merge system is powered by **four specialized agents**, each wit
 │           When user triggers a merge:               │
 │                                                     │
 │  ┌─────────────┐  ┌─────────────┐                   │
-│  │  Scout       │  │  Merge      │                   │
-│  │  Agent       │  │  Agent      │                   │
+│  │  Scout      │  │  Merge      │                   │
+│  │  Agent      │  │  Agent      │                   │
 │  │             │  │             │                   │
 │  │ Reads both  │  │ Executes    │                   │
 │  │ codebases,  │  │ the merge   │                   │
@@ -322,8 +322,8 @@ Collab Studio's merge system is powered by **four specialized agents**, each wit
 │  │ plans the   │  │ verifies    │                   │
 │  │ merge       │  │ the result  │                   │
 │  └──────┬──────┘  └──────┬──────┘                   │
-│         │   merge plan    │                          │
-│         └────────────────►│                          │
+│         │   merge plan   │                          │
+│         └────────────────►│                         │
 │                                                     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -435,10 +435,11 @@ SCOUT AGENT MEMORY (during a merge analysis):
 │   - schema.ts: defines users table          │
 │ conflicts_found:                            │
 │   - Both have Button component (different)  │
-│   - Source uses Tailwind, Target inline CSS  │
+│   - Source uses Tailwind, Target inline CSS │
 │ dependencies_to_migrate:                    │
 │   - useAnimation.ts (for Hero)              │
-│   - useAuth.ts, auth.ts, schema.ts (for Auth)│
+│   - useAuth.ts, auth.ts, schema.ts (for     |
+|     Auth)                                   │
 └─────────────────────────────────────────────┘
 ```
 
