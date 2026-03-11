@@ -470,65 +470,70 @@ export function MergeModal({ variant }: MergeModalProps) {
 
     return (
       <div
-        onClick={() => !isBase && handleSelectBase(branch?.id ?? '')}
-        className="flex flex-col gap-5 px-6 pt-4 pb-6 flex-1 min-w-0 transition-all"
-        style={{
-          cursor: isBase ? 'default' : 'pointer',
-          background: isBase ? 'rgba(139,92,246,0.04)' : undefined,
-        }}
+        className="flex flex-col flex-1 min-w-0 min-h-0 transition-all"
+        style={{ background: isBase ? 'rgba(139,92,246,0.04)' : undefined }}
       >
-        {/* Title row */}
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <h3 className="text-base font-bold text-ink-primary truncate">
-            {branch ? toDisplayName(branch.name) : <span className="text-ink-muted font-normal">No branch selected</span>}
-          </h3>
-          {isBase && (
-            <span className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold text-white" style={{ background: 'rgb(139 92 246)' }}>
-              Selected as Base
-            </span>
-          )}
-        </div>
-
-        {/* Preview */}
+        {/* Fixed: title + preview */}
         <div
-          className="rounded-lg overflow-hidden bg-surface-2 border border-line relative flex-shrink-0"
-          style={{ height: PREVIEW_H }}
+          onClick={() => !isBase && handleSelectBase(branch?.id ?? '')}
+          className="flex flex-col gap-4 px-6 pt-4 pb-4 flex-shrink-0"
+          style={{ cursor: isBase ? 'default' : 'pointer' }}
         >
-          {code ? (
-            <iframe
-              srcDoc={code}
-              className="absolute top-0 left-0 border-none pointer-events-none"
-              style={{ width: '1400px', height: `${Math.ceil(PREVIEW_H / previewScale)}px`, transformOrigin: 'top left', transform: `scale(${previewScale})` }}
-              sandbox="allow-scripts"
-              title={branch?.name}
-            />
-          ) : (
-            <div className="w-full h-full bg-white" />
-          )}
+          {/* Title row */}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <h3 className="text-base font-bold text-ink-primary truncate">
+              {branch ? toDisplayName(branch.name) : <span className="text-ink-muted font-normal">No branch selected</span>}
+            </h3>
+            {isBase && (
+              <span className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold text-white" style={{ background: 'rgb(139 92 246)' }}>
+                Selected as Base
+              </span>
+            )}
+          </div>
+
+          {/* Preview */}
+          <div
+            className="rounded-lg overflow-hidden bg-surface-2 border border-line relative flex-shrink-0"
+            style={{ height: PREVIEW_H }}
+          >
+            {code ? (
+              <iframe
+                srcDoc={code}
+                className="absolute top-0 left-0 border-none pointer-events-none"
+                style={{ width: '1400px', height: `${Math.ceil(PREVIEW_H / previewScale)}px`, transformOrigin: 'top left', transform: `scale(${previewScale})` }}
+                sandbox="allow-scripts"
+                title={branch?.name}
+              />
+            ) : (
+              <div className="w-full h-full bg-white" />
+            )}
+          </div>
         </div>
 
-        {/* Features */}
+        {/* Scrollable: feature list */}
         {features.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {features.map((f) => (
-              <button
-                key={f.id}
-                onClick={(e) => { e.stopPropagation(); toggleFn(f.id); }}
-                className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
-              >
-                <div
-                  className="flex items-center justify-center flex-shrink-0 rounded"
-                  style={{
-                    width: 20, height: 20,
-                    background: featureSelectedIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
-                    border: featureSelectedIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
-                  }}
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+            <div className="flex flex-col gap-2">
+              {features.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={(e) => { e.stopPropagation(); toggleFn(f.id); }}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
                 >
-                  {featureSelectedIds.has(f.id) && <Check size={11} className="text-white" />}
-                </div>
-                <span className="text-sm text-ink-primary">{f.name}</span>
-              </button>
-            ))}
+                  <div
+                    className="flex items-center justify-center flex-shrink-0 rounded"
+                    style={{
+                      width: 20, height: 20,
+                      background: featureSelectedIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
+                      border: featureSelectedIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
+                    }}
+                  >
+                    {featureSelectedIds.has(f.id) && <Check size={11} className="text-white" />}
+                  </div>
+                  <span className="text-sm text-ink-primary">{f.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -570,9 +575,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
               style={{ border: baseId === leftBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
             >
-              <div className="overflow-y-auto flex-1">
-                {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
-              </div>
+              {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
             </div>
 
             {/* Divider */}
@@ -582,9 +585,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
               style={{ border: baseId === rightBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
             >
-              <div className="overflow-y-auto flex-1">
-                {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
-              </div>
+              {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
             </div>
 
           </div>
