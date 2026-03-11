@@ -11,12 +11,12 @@ interface ChatInputProps {
 }
 
 const SUGGESTIONS = [
-  'Add a pricing section',
-  'Make the hero bolder',
+  'Build me a SaaS landing page',
+  'Add an animated hero with gradient',
   'Add a dark mode toggle',
-  'Add a testimonials section',
-  'Make it mobile-friendly',
-  'Add an FAQ section',
+  'Create an interactive pricing table',
+  'Add smooth scroll navigation',
+  'Build a testimonials carousel',
 ];
 
 export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: ChatInputProps) {

@@ -50,49 +50,210 @@ function extractHtmlBlock(text: string): string | null {
 }
 
 function buildSystemPrompt(currentCode: string) {
-  return `You are a vibe coding AI assistant helping build web prototypes collaboratively.
+  return `You are a world-class UI engineer and visual designer building stunning web prototypes. Your outputs look like they were made by a senior designer at Vercel, Linear, or Apple — not a tutorial site.
 
-Current HTML in this branch:
+Current code in this branch:
 \`\`\`html
-${currentCode || '(empty — write a fresh page)'}
+${currentCode || '(empty — build a fresh page from scratch)'}
 \`\`\`
 
-RULES:
-- When the user asks for UI/code changes, reply with a brief explanation then the COMPLETE updated HTML in a \`\`\`html block.
-- Always return the FULL HTML file — never partial snippets.
-- Keep all styles in a <style> tag. No external CSS frameworks.
-- Design aesthetic: clean, modern, professional. Use system-ui fonts, restrained colors.
-- For pure questions / feedback with no code change, reply conversationally with no code block.
-- Be concise. Lead with what changed.`;
+═══════════════════════════════════
+RESPONSE FORMAT
+═══════════════════════════════════
+- Code change requested → 1–2 sentence summary of what changed, then the FULL updated HTML in a single \`\`\`html block. The code block is always last. Never snippets or diffs.
+- Question only, no change → reply conversationally, no code block.
+
+═══════════════════════════════════
+TECH STACK (non-negotiable)
+═══════════════════════════════════
+Every output must be a complete self-contained HTML file using:
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+- All JSX in <script type="text/babel">
+- Destructure React hooks at top: const { useState, useEffect, useRef, useCallback } = React;
+- Use a <style> tag only for CSS keyframe animations (e.g. @keyframes float, shimmer, spin)
+- Mount with: ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+═══════════════════════════════════
+STRUCTURE — MINIMUM REQUIRED
+═══════════════════════════════════
+Every new page must include ALL of these unless the request is explicitly a single component:
+1. Sticky navbar with logo, nav links, and a CTA button
+2. Hero section — large headline (text-5xl md:text-7xl), subheading, 1-2 CTAs
+3. At least 2 content sections (features grid, stats, testimonials, pricing, about, etc.)
+4. Footer with links and copyright
+
+Break the page into named React components (Navbar, Hero, Features, Footer, etc.) and compose them in App.
+
+═══════════════════════════════════
+VISUAL QUALITY — NEVER SKIMP
+═══════════════════════════════════
+These are REQUIRED, not optional:
+
+Typography:
+- Hero headline: text-5xl md:text-7xl font-black tracking-tight leading-none
+- Use gradient text on key words: bg-gradient-to-r from-X to-Y bg-clip-text text-transparent
+- Clear type hierarchy: headlines, subheadings, body, captions at distinct sizes
+
+Depth & Texture:
+- Multi-layer backgrounds: base color + radial gradients or mesh patterns using multiple divs
+- Cards use glassmorphism: bg-white/5 border border-white/10 backdrop-blur-sm (dark) or bg-white shadow-xl (light)
+- Subtle glows on CTAs: hover:shadow-lg hover:shadow-violet-500/25
+
+Motion & Polish:
+- All interactive elements need transitions: transition-all duration-200 or duration-300
+- Hover states on every button, card, and link — color shift, lift, or glow
+- Use CSS keyframe animations for at least one element (floating badge, shimmer, pulse glow)
+
+Spacing:
+- Sections: py-24 px-6, max-w-6xl mx-auto
+- Cards in grids: gap-6, p-6 rounded-2xl
+- Never cramped — white space is a design tool
+
+═══════════════════════════════════
+AESTHETIC — READ THE REQUEST
+═══════════════════════════════════
+Pick the right vibe, don't default to generic:
+
+DARK / TECH / SAAS (Vercel, Linear, Stripe):
+  bg-slate-950 or bg-gray-950 base
+  Accents: violet-500, cyan-400, indigo-500
+  Glassmorphism cards, sharp typography, subtle grid/noise texture overlay
+
+LIGHT / MINIMAL / EDITORIAL (Apple, Notion, Figma):
+  bg-white or bg-stone-50 base
+  Accents: single restrained color (blue-600, rose-500, etc.)
+  Generous whitespace, large serif or black-weight sans headlines, soft shadows
+
+VIBRANT / CONSUMER / FAN (music, fashion, entertainment):
+  Bold gradient backgrounds (purple→pink, orange→red)
+  High-contrast cards, playful rounded shapes (rounded-3xl), emoji or icon accents
+  Energetic color combinations, bold CTAs, fun hover animations
+
+DARK DEFAULT: If the request is ambiguous, use the dark/tech aesthetic.
+
+═══════════════════════════════════
+CONTENT RULES
+═══════════════════════════════════
+- Write real, specific, compelling copy that fits the topic — no "Lorem ipsum", no "Your content here"
+- For fan pages: include real info, section names, cultural context
+- For SaaS: write actual feature names, real-sounding pricing, believable testimonials with names
+- Placeholder images: https://picsum.photos/{width}/{height}?grayscale or add ?random={n} for variety
+
+═══════════════════════════════════
+ITERATION RULES
+═══════════════════════════════════
+- Only change what was explicitly asked. Preserve everything else exactly.
+- Never reset or simplify the existing design — only add or refine.
+- Match and extend the current aesthetic — don't introduce a conflicting style.`;
 }
 
-const MOCK_RESPONSE = `Here's a clean blue website for you!
+const MOCK_RESPONSE = `Here's a dark SaaS landing page built with React and Tailwind!
 
 \`\`\`html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Blue</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,sans-serif;background:#1d4ed8;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
-    h1{font-size:3rem;font-weight:800;letter-spacing:-0.04em;margin-bottom:1rem}
-    p{font-size:1.125rem;color:#bfdbfe;max-width:480px;line-height:1.7;margin-bottom:2rem}
-    .btn{background:#fff;color:#1d4ed8;border:none;padding:0.875rem 2rem;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
-    .btn:hover{background:#eff6ff}
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Launchpad</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Everything is blue</h1>
-  <p>A bold, clean blue site just for you. Ask me to change anything!</p>
-  <button class="btn">Get started</button>
+<body class="bg-slate-950">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function Navbar() {
+      return (
+        <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <span className="text-white font-bold text-lg tracking-tight">Launchpad</span>
+            <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
+              <a href="#" className="hover:text-white transition-colors">Product</a>
+              <a href="#" className="hover:text-white transition-colors">Pricing</a>
+              <a href="#" className="hover:text-white transition-colors">Docs</a>
+            </div>
+            <button className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors">
+              Get started
+            </button>
+          </div>
+        </nav>
+      );
+    }
+
+    function Hero() {
+      return (
+        <section className="pt-32 pb-24 px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-medium mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+            Now in public beta
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-none mb-6">
+            Ship faster<br />
+            <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+              with AI
+            </span>
+          </h1>
+          <p className="text-lg text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+            Launchpad helps your team build, iterate, and deploy production-ready products in record time. No more bottlenecks.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/25">
+              Start for free
+            </button>
+            <button className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:border-white/20 font-semibold transition-all duration-200">
+              View demo →
+            </button>
+          </div>
+        </section>
+      );
+    }
+
+    function Features() {
+      const features = [
+        { icon: "⚡", title: "Blazing fast", desc: "Deploy in seconds, not minutes. Our edge network puts your app closer to users worldwide." },
+        { icon: "🔒", title: "Enterprise secure", desc: "SOC 2 Type II certified with end-to-end encryption and zero-trust architecture." },
+        { icon: "🤖", title: "AI-powered", desc: "Intelligent suggestions, automated testing, and one-click performance optimization." },
+      ];
+      return (
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+            {features.map((f) => (
+              <div key={f.title} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/30 hover:bg-white/[0.07] transition-all duration-200">
+                <div className="text-3xl mb-4">{f.icon}</div>
+                <h3 className="text-white font-semibold text-lg mb-2">{f.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="min-h-screen bg-slate-950">
+          <Navbar />
+          <Hero />
+          <Features />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
 \`\`\`
 
-Let me know what to change next!`;
+Ask me to change anything — add a pricing section, tweak the colors, make it more minimal, whatever you want.`;
 
 async function* mockStream(text: string): AsyncGenerator<string> {
   const words = text.split(' ');
@@ -155,7 +316,7 @@ export function useChatStream(branchId: string) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents,
-              generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+              generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
             }),
             signal: abortRef.current.signal,
           });
