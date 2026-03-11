@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
+
 // Shared tool implementations available to agents.
 // In Phase 2, files are passed in the request payload (not read from disk).
 // In later phases, these will expand to read from a project file store.
@@ -21,23 +23,21 @@ export function searchCode(files, pattern) {
   });
 }
 
-/** Helper: call Gemini generateContent (non-streaming) */
-export async function callGemini(apiKey, model, contents, generationConfig = {}) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents, generationConfig }),
+/**
+ * Helper: call Claude (non-streaming) for background agents.
+ * @param {string} apiKey  - Anthropic API key
+ * @param {string} model   - Claude model ID
+ * @param {{ system?: string, messages: Array }} payload
+ * @param {{ temperature?: number, maxOutputTokens?: number }} params
+ */
+export async function callClaude(apiKey, model, { system, messages }, params = {}) {
+  const client = new Anthropic({ apiKey });
+  const msg = await client.messages.create({
+    model,
+    max_tokens: params.maxOutputTokens ?? 8192,
+    temperature: params.temperature ?? 0.7,
+    ...(system ? { system } : {}),
+    messages,
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => `HTTP ${response.status}`);
-    throw new Error(`Gemini ${response.status}: ${body}`);
-  }
-  const data = await response.json();
-  // Filter out thinking tokens from Gemini 2.5
-  const text = data.candidates?.[0]?.content?.parts
-    ?.filter((p) => !p.thought)
-    .map((p) => p.text ?? '')
-    .join('') ?? '';
-  return text;
+  return msg.content[0]?.text ?? '';
 }

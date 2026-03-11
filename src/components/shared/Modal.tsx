@@ -63,7 +63,7 @@ export function Modal({ open, onClose, title, children, size = 'md', bare = fals
               <>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-line">
-                  <h2 className="text-sm font-semibold text-ink-primary">{title}</h2>
+                  <h2 className="text-lg font-semibold text-ink-primary">{title}</h2>
                   <button
                     onClick={onClose}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"

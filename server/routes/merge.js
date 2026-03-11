@@ -45,7 +45,7 @@ mergeRouter.post('/start', async (req, res) => {
 
   sseSetup(res);
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
     sseWrite(res, { type: 'plan', ...mockPlan((selectedFeatureIds ?? []).length) });
     res.end();
@@ -90,7 +90,7 @@ mergeRouter.post('/execute', async (req, res) => {
   sseSetup(res);
 
   const emit = (data) => sseWrite(res, data);
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey || apiKey === 'your_key_here') {
     // Mock mode: return target code unchanged

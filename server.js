@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
+import Anthropic from '@anthropic-ai/sdk';
 import { blueprintRouter } from './server/routes/blueprint.js';
 import { mergeRouter } from './server/routes/merge.js';
 import { createRateLimiter } from './server/middleware/rateLimit.js';
@@ -10,7 +11,8 @@ config();
 
 const app = express();
 const PORT = 3001;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const CHAT_MODEL = 'claude-sonnet-4-6';
 
 // Load system prompt from COLLABSTUDIO.md at startup
 let SYSTEM_PROMPT = '';
@@ -22,13 +24,14 @@ try {
   SYSTEM_PROMPT = 'You are a vibe coding AI. Help users iterate on HTML prototypes. Return the FULL updated HTML in a ```html block when making changes.';
 }
 
-const CONTEXT_WINDOW = 10; // number of most recent messages to include
+const CONTEXT_WINDOW = 8; // most recent messages to include in sliding window
 
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json({ limit: '4mb' }));
 
 app.use('/api/blueprint', createRateLimiter({ maxCalls: 10, windowMs: 60_000 }), blueprintRouter);
 app.use('/api/merge', createRateLimiter({ maxCalls: 5, windowMs: 60_000 }), mergeRouter);
+
 
 const MOCK_RESPONSE = `Added a logo bar and a 3-column feature grid below the hero.
 
@@ -92,39 +95,29 @@ const MOCK_RESPONSE = `Added a logo bar and a 3-column feature grid below the he
 
 Let me know what to tweak next!`;
 
-function buildGeminiContents(messages, currentCode) {
-  const systemTurn = `${SYSTEM_PROMPT}
-
----
-
-## Current Branch Code
-
-\`\`\`html
-${currentCode || '<!-- No code yet — start fresh! -->'}
-\`\`\``;
-
-  const contents = [
-    { role: 'user', parts: [{ text: systemTurn }] },
-    { role: 'model', parts: [{ text: "Got it — I've read the current prototype and I'm ready to help. What would you like to change?" }] },
-  ];
+function buildClaudeMessages(messages, currentCode) {
+  // Inject current code as context at the top of the conversation
+  const codeContext = `## Current Branch Code\n\n\`\`\`html\n${currentCode || '<!-- No code yet — start fresh! -->'}\n\`\`\`\n\n---\n\n`;
 
   // Sliding window: keep the most recent N messages
   const window = messages.slice(-CONTEXT_WINDOW);
-  for (const msg of window) {
-    contents.push({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
-    });
+
+  if (window.length === 0) {
+    return [{ role: 'user', content: codeContext + 'Hello! What can you help me build?' }];
   }
 
-  return contents;
+  // Prepend code context to the first user message in the window
+  return window.map((msg, i) => ({
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: i === 0 && msg.role === 'user' ? codeContext + msg.content : msg.content,
+  }));
 }
 
 app.post('/api/chat', async (req, res) => {
   const { messages = [], currentCode = '' } = req.body;
 
-  // Mock mode if API key is missing or placeholder
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_key_here') {
+  // Mock mode if API key is missing
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_key_here') {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -147,65 +140,26 @@ app.post('/api/chat', async (req, res) => {
     return;
   }
 
-  const contents = buildGeminiContents(messages, currentCode);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
-
   try {
-    const geminiRes = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
-
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text();
-      console.error('Gemini error:', geminiRes.status, errBody);
-      let detail = errBody;
-      try { detail = JSON.parse(errBody)?.error?.message ?? errBody; } catch {}
-      res.status(502).json({ error: `Gemini ${geminiRes.status}: ${detail}` });
-      return;
-    }
+    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const claudeMessages = buildClaudeMessages(messages, currentCode);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const reader = geminiRes.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    const stream = await client.messages.stream({
+      model: CHAT_MODEL,
+      max_tokens: 8192,
+      temperature: 1, // required for claude-sonnet-4-6
+      system: SYSTEM_PROMPT,
+      messages: claudeMessages,
+    });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') {
-          res.write('data: [DONE]\n\n');
-          continue;
-        }
-        try {
-          const parsed = JSON.parse(data);
-          // Filter out thinking tokens (parts with thought: true) — Gemini 2.5 Flash
-          const parts = parsed.candidates?.[0]?.content?.parts ?? [];
-          const text = parts.filter(p => !p.thought).map(p => p.text ?? '').join('');
-          if (text) {
-            res.write(`data: ${JSON.stringify({ text })}\n\n`);
-          }
-        } catch {
-          // skip malformed chunks
-        }
+    for await (const event of stream) {
+      if (req.closed) break;
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
       }
     }
 
@@ -214,7 +168,7 @@ app.post('/api/chat', async (req, res) => {
   } catch (err) {
     console.error('Server error:', err);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: err.message ?? 'Internal server error' });
     } else {
       res.end();
     }
@@ -222,7 +176,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  const mode = (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_key_here') ? 'MOCK' : 'LIVE';
+  const mode = (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_key_here') ? 'MOCK' : 'LIVE';
   console.log(`\n🚀 Chat proxy running on http://localhost:${PORT}`);
-  console.log(`   Mode: ${mode} ${mode === 'MOCK' ? '(add GEMINI_API_KEY to .env for real API)' : '✓'}\n`);
+  console.log(`   Mode: ${mode} ${mode === 'MOCK' ? '(add ANTHROPIC_API_KEY to .env for real API)' : `✓ (${CHAT_MODEL})`}\n`);
 });

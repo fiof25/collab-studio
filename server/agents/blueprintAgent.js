@@ -1,7 +1,7 @@
-import { callGemini, listFiles } from './tools.js';
+import { callClaude, listFiles } from './tools.js';
 import { clearMemory } from './memory.js';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const SYSTEM_PROMPT = `You are a Blueprint Agent for a collaborative prototyping tool called Collab Studio.
 
@@ -59,17 +59,10 @@ ${fileDump}
 
 Generate the BLUEPRINT JSON now.`;
 
-    const contents = [
-      { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Understood. I will analyze the code and output valid JSON only.' }] },
-      { role: 'user', parts: [{ text: userMessage }] },
-    ];
-
-    const raw = await callGemini(apiKey, MODEL, contents, {
-      temperature: 0.2,
-      maxOutputTokens: 4096,
-      responseMimeType: 'application/json',
-    });
+    const raw = await callClaude(apiKey, MODEL, {
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    }, { temperature: 0.2, maxOutputTokens: 4096 });
 
     // Parse — responseMimeType: application/json means Gemini returns raw JSON
     let blueprint;

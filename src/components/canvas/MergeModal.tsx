@@ -364,10 +364,9 @@ export function MergeModal({ variant }: MergeModalProps) {
     };
 
     return (
-      <Modal open={open} onClose={closeModal} title="New draft" size="sm">
+      <Modal open={open} onClose={closeModal} title="New Root" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-ink-muted mb-1.5 block">Draft name</label>
             <input
               className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-ink-muted"
               placeholder="my-new-draft"
@@ -387,7 +386,7 @@ export function MergeModal({ variant }: MergeModalProps) {
               className="flex-1 !bg-ink-primary !text-canvas hover:!opacity-80"
               icon={<Plus size={14} />}
             >
-              Create draft
+              Create
             </Button>
           </div>
         </div>
@@ -472,11 +471,9 @@ export function MergeModal({ variant }: MergeModalProps) {
     return (
       <div
         onClick={() => !isBase && handleSelectBase(branch?.id ?? '')}
-        className="flex flex-col gap-5 px-6 pt-4 pb-6 flex-1 min-w-0 rounded-xl transition-all"
+        className="flex flex-col gap-5 px-6 pt-4 pb-6 flex-1 min-w-0 transition-all"
         style={{
           cursor: isBase ? 'default' : 'pointer',
-          outline: isBase ? '1.5px solid rgb(139 92 246)' : '1.5px solid transparent',
-          outlineOffset: '-2px',
           background: isBase ? 'rgba(139,92,246,0.04)' : undefined,
         }}
       >
@@ -554,15 +551,43 @@ export function MergeModal({ variant }: MergeModalProps) {
           </button>
         </div>
 
-        {/* Two-column preview area */}
-        <div className="flex flex-1 min-h-0 overflow-y-auto border-b border-line">
+        {/* Two-column preview area + instructions (with loading overlay) */}
+        <div className="relative flex-1 min-h-0 flex flex-col">
 
-          {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
+          {/* Loading overlay */}
+          {merging && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-none" style={{ background: 'rgba(13,13,18,0.75)', backdropFilter: 'blur(4px)' }}>
+              <Loader2 size={28} className="animate-spin" style={{ color: 'rgb(139 92 246)' }} />
+              <p className="text-sm font-medium text-ink-primary">Merging versions…</p>
+              <p className="text-xs text-ink-muted">This may take a moment</p>
+            </div>
+          )}
 
-          {/* Divider */}
-          <div className="w-px bg-line flex-shrink-0" />
+          {/* Two-column preview area */}
+          <div className="flex flex-1 min-h-0 border-b border-line">
 
-          {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
+            <div
+              className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
+              style={{ border: baseId === leftBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
+            >
+              <div className="overflow-y-auto flex-1">
+                {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px bg-line flex-shrink-0" />
+
+            <div
+              className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
+              style={{ border: baseId === rightBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
+            >
+              <div className="overflow-y-auto flex-1">
+                {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
+              </div>
+            </div>
+
+          </div>
 
         </div>
 

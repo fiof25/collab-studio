@@ -53,7 +53,7 @@ blueprintRouter.post('/generate', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
     // Mock mode
     return res.json({ success: true, blueprint: mockBlueprint(branchName, parentBranchName) });
@@ -73,7 +73,7 @@ blueprintRouter.post('/snapshot', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === 'your_key_here') {
     return res.json({ success: true, description: `${branchName} — prototype` });
   }

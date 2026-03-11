@@ -1,6 +1,6 @@
-import { callGemini } from './tools.js';
+import { callClaude } from './tools.js';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const VISION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
@@ -33,32 +33,32 @@ Respond with ONLY the description. No punctuation at the end. No quotes.`;
 
 export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBase64 }) {
   try {
-    let contents;
+    let claudePayload;
 
     if (screenshotBase64) {
       // Vision-based: describe the rendered screenshot
-      contents = [
-        {
+      claudePayload = {
+        system: VISION_PROMPT,
+        messages: [{
           role: 'user',
-          parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: screenshotBase64 } },
-            { text: `Branch: "${branchName}"\n\n${VISION_PROMPT}` },
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: screenshotBase64 } },
+            { type: 'text', text: `Branch: "${branchName}"` },
           ],
-        },
-      ];
+        }],
+      };
     } else {
       // Fallback: describe from HTML source
       const mainFile = files.find((f) => f.path === 'index.html') ?? files[0];
       if (!mainFile) return { success: false, error: 'No files to analyze' };
 
-      contents = [
-        { role: 'user', parts: [{ text: CODE_PROMPT }] },
-        { role: 'model', parts: [{ text: 'Ready. I will describe what the user sees in 10–20 words.' }] },
-        { role: 'user', parts: [{ text: `Branch: "${branchName}"\n\n${mainFile.content.slice(0, 8000)}` }] },
-      ];
+      claudePayload = {
+        system: CODE_PROMPT,
+        messages: [{ role: 'user', content: `Branch: "${branchName}"\n\n${mainFile.content.slice(0, 8000)}` }],
+      };
     }
 
-    const description = await callGemini(apiKey, MODEL, contents, {
+    const description = await callClaude(apiKey, MODEL, claudePayload, {
       temperature: 0.3,
       maxOutputTokens: 80,
     });

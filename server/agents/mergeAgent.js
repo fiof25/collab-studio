@@ -1,7 +1,7 @@
-import { callGemini, readFile } from './tools.js';
+import { callClaude, readFile } from './tools.js';
 import { clearMemory } from './memory.js';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const SYSTEM_PROMPT = `You are a Merge Agent for a collaborative prototyping tool called Collab Studio.
 
@@ -85,16 +85,10 @@ ${targetHtml.slice(0, 12000)}
 
 Output the complete merged HTML document now. No markdown fences — raw HTML only.`;
 
-    const contents = [
-      { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Ready. I will output only the merged HTML document.' }] },
-      { role: 'user', parts: [{ text: userMessage }] },
-    ];
-
-    const raw = await callGemini(apiKey, MODEL, contents, {
-      temperature: 0.2,
-      maxOutputTokens: 8192,
-    });
+    const raw = await callClaude(apiKey, MODEL, {
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    }, { temperature: 0.2, maxOutputTokens: 8192 });
 
     // Strip markdown fences if Gemini wrapped the output
     let mergedHtml = raw.trim();
