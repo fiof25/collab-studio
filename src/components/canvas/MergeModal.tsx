@@ -462,11 +462,26 @@ export function MergeModal({ variant }: MergeModalProps) {
   const previewScale = 310 / 1400;
   const PREVIEW_H = 200;
 
+  const getSuggestedPrompts = (branch: Branch | undefined, isBase: boolean): string[] => {
+    if (!branch) return [];
+    const name = toDisplayName(branch.name);
+    const otherBranch = isBase ? contributorBranch : baseBranch;
+    const otherName = otherBranch ? toDisplayName(otherBranch.name) : 'the other version';
+    const features = branch?.blueprint?.features ?? [];
+    const prompts: string[] = [
+      `Keep ${name}'s overall layout and structure`,
+      `Use ${name}'s color scheme and styling`,
+    ];
+    features.slice(0, 4).forEach((f) => {
+      prompts.push(`Bring in the ${f.name.toLowerCase()} from ${name}`);
+    });
+    prompts.push(`Use ${name} as the foundation, adding improvements from ${otherName}`);
+    return prompts;
+  };
+
   const renderPreviewColumn = (branch: Branch | undefined, isBase: boolean) => {
     const code = getCode(branch);
-    const features = branch?.blueprint?.features ?? [];
-    const featureSelectedIds = isBase ? selectedBaseFeatureIds : selectedFeatureIds;
-    const toggleFn = isBase ? toggleBaseFeature : toggleFeature;
+    const suggestedPrompts = getSuggestedPrompts(branch, isBase);
 
     return (
       <div
@@ -510,27 +525,18 @@ export function MergeModal({ variant }: MergeModalProps) {
           </div>
         </div>
 
-        {/* Scrollable: feature list */}
-        {features.length > 0 && (
+        {/* Scrollable: suggested prompts */}
+        {suggestedPrompts.length > 0 && (
           <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+            <p className="text-[11px] text-ink-muted mb-2 uppercase tracking-wide">Suggested</p>
             <div className="flex flex-col gap-2">
-              {features.map((f) => (
+              {suggestedPrompts.map((prompt, i) => (
                 <button
-                  key={f.id}
-                  onClick={(e) => { e.stopPropagation(); toggleFn(f.id); }}
-                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setMergeInstructions((prev) => prev ? `${prev} ${prompt}` : prompt); }}
+                  className="w-full text-left px-3 py-2 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-sm text-ink-secondary transition-colors"
                 >
-                  <div
-                    className="flex items-center justify-center flex-shrink-0 rounded"
-                    style={{
-                      width: 20, height: 20,
-                      background: featureSelectedIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
-                      border: featureSelectedIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
-                    }}
-                  >
-                    {featureSelectedIds.has(f.id) && <Check size={11} className="text-white" />}
-                  </div>
-                  <span className="text-sm text-ink-primary">{f.name}</span>
+                  {prompt}
                 </button>
               ))}
             </div>
