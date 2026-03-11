@@ -80,6 +80,8 @@ export function MergeModal({ variant }: MergeModalProps) {
   const [merging, setMerging] = useState(false);
   const [mergeErrMsg, setMergeErrMsg] = useState<string | null>(null);
   const [selectedBaseFeatureIds, setSelectedBaseFeatureIds] = useState<Set<string>>(new Set());
+  const [aiPrompts, setAiPrompts] = useState<string[]>([]);
+  const [promptsLoading, setPromptsLoading] = useState(false);
 
   const open =
     variant === 'merge'
@@ -123,6 +125,7 @@ export function MergeModal({ variant }: MergeModalProps) {
       setScoutSummary('');
       setScoutQuestions([]);
       setQuestionAnswers({});
+      setAiPrompts([]);
     }
     if (activeModal === 'newBranch') {
       setParentId((modalContext?.parentId as string) ?? (project?.rootBranchId ?? ''));
@@ -133,6 +136,36 @@ export function MergeModal({ variant }: MergeModalProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModal]);
+
+  // Fetch AI-suggested prompts when both branches are known
+  useEffect(() => {
+    if (!baseBranch || !contributorBranch) return;
+    const controller = new AbortController();
+    setPromptsLoading(true);
+    const getHtml = (b: typeof baseBranch) =>
+      b?.checkpoints.at(-1)?.files?.find(f => f.path === 'index.html')?.content
+      ?? b?.checkpoints.at(-1)?.codeSnapshot
+      ?? '';
+    fetch('/api/merge/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        baseName: toDisplayName(baseBranch.name),
+        contributorName: toDisplayName(contributorBranch.name),
+        baseBlueprint: baseBranch.blueprint ?? null,
+        contributorBlueprint: contributorBranch.blueprint ?? null,
+        baseHtml: getHtml(baseBranch),
+        contributorHtml: getHtml(contributorBranch),
+      }),
+      signal: controller.signal,
+    })
+      .then((r) => r.json())
+      .then((data) => { setAiPrompts(data.prompts ?? []); })
+      .catch(() => {})
+      .finally(() => setPromptsLoading(false));
+    return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseBranch?.id, contributorBranch?.id]);
 
   // Scroll progress to bottom
   useEffect(() => {
@@ -356,10 +389,11 @@ export function MergeModal({ variant }: MergeModalProps) {
       if (!newName.trim()) return;
       setLoading(true);
       setTimeout(() => {
-        createRootBranch(newName.trim(), '');
+        const branch = createRootBranch(newName.trim(), '');
         pushToast({ type: 'success', message: `"${newName.trim()}" created` });
         closeModal();
         setLoading(false);
+        navigate(`/branch/${branch.id}`);
       }, 600);
     };
 
@@ -462,26 +496,8 @@ export function MergeModal({ variant }: MergeModalProps) {
   const previewScale = 310 / 1400;
   const PREVIEW_H = 200;
 
-  const getSuggestedPrompts = (branch: Branch | undefined, isBase: boolean): string[] => {
-    if (!branch) return [];
-    const name = toDisplayName(branch.name);
-    const otherBranch = isBase ? contributorBranch : baseBranch;
-    const otherName = otherBranch ? toDisplayName(otherBranch.name) : 'the other version';
-    const features = branch?.blueprint?.features ?? [];
-    const prompts: string[] = [
-      `Keep ${name}'s overall layout and structure`,
-      `Use ${name}'s color scheme and styling`,
-    ];
-    features.slice(0, 4).forEach((f) => {
-      prompts.push(`Bring in the ${f.name.toLowerCase()} from ${name}`);
-    });
-    prompts.push(`Use ${name} as the foundation, adding improvements from ${otherName}`);
-    return prompts;
-  };
-
   const renderPreviewColumn = (branch: Branch | undefined, isBase: boolean) => {
     const code = getCode(branch);
-    const suggestedPrompts = getSuggestedPrompts(branch, isBase);
 
     return (
       <div
@@ -525,23 +541,6 @@ export function MergeModal({ variant }: MergeModalProps) {
           </div>
         </div>
 
-        {/* Scrollable: suggested prompts */}
-        {suggestedPrompts.length > 0 && (
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
-            <p className="text-[11px] text-ink-muted mb-2 uppercase tracking-wide">Suggested</p>
-            <div className="flex flex-col gap-2">
-              {suggestedPrompts.map((prompt, i) => (
-                <button
-                  key={i}
-                  onClick={(e) => { e.stopPropagation(); setMergeInstructions((prev) => prev ? `${prev} ${prompt}` : prompt); }}
-                  className="w-full text-left px-3 py-2 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-sm text-ink-secondary transition-colors"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -600,6 +599,29 @@ export function MergeModal({ variant }: MergeModalProps) {
 
         {/* Merge Instructions */}
         <div className="px-6 py-4 flex-shrink-0 border-b border-line">
+          {/* Suggested prompts */}
+          {(aiPrompts.length > 0 || promptsLoading) && (
+            <div className="mb-3 flex items-center gap-2">
+              {promptsLoading ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 size={11} className="animate-spin text-ink-muted" />
+                  <span className="text-xs text-ink-muted">Generating suggestions…</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden">
+                  {aiPrompts.map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMergeInstructions((prev) => prev ? `${prev} ${prompt}` : prompt)}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-full border border-line bg-surface-2 hover:bg-surface-3 text-xs text-ink-secondary transition-colors whitespace-nowrap"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <textarea
             className="w-full resize-none bg-surface-2 border border-line rounded-lg px-4 py-3 text-base text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors leading-relaxed"
             placeholder="E.g., Keep the Base's layout and navigation, but bring in the new hero section and color scheme from the other version."

@@ -1,4 +1,5 @@
 import { MessageCircle, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { TopNav } from '@/components/shared/TopNav';
 import { ProjectCanvas } from '@/components/canvas/ProjectCanvas';
 import { MergeModal } from '@/components/canvas/MergeModal';
@@ -9,9 +10,14 @@ import { useAutoBlueprint } from '@/hooks/useAutoBlueprint';
 
 export function CanvasPage() {
   useAutoBlueprint();
-  const openModal = useUIStore((s) => s.openModal);
+  const navigate = useNavigate();
   const { globalCommentsPanelOpen, toggleGlobalCommentsPanel } = useUIStore();
-  const project = useProjectStore((s) => s.project);
+  const { project, createRootBranch } = useProjectStore();
+
+  const handleNewRoot = () => {
+    const branch = createRootBranch('Untitled', '');
+    navigate(`/branch/${branch.id}`);
+  };
 
   const openCommentCount = (project?.branches ?? [])
     .flatMap((b) => b.comments ?? [])
@@ -41,7 +47,7 @@ export function CanvasPage() {
             </button>
 
             <button
-              onClick={() => openModal('newDraft')}
+              onClick={handleNewRoot}
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-ink-primary hover:opacity-80 text-canvas text-base font-medium transition-opacity"
             >
               <Plus size={16} />

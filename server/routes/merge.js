@@ -33,6 +33,70 @@ function mockPlan(featureCount) {
   };
 }
 
+// POST /api/merge/prompts
+// Body: { baseName, contributorName, baseBlueprint, contributorBlueprint, baseHtml, contributorHtml }
+// Returns: { prompts: string[] }
+mergeRouter.post('/prompts', async (req, res) => {
+  const { baseName, contributorName, baseBlueprint, contributorBlueprint, baseHtml, contributorHtml } = req.body;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey || apiKey === 'your_key_here') {
+    return res.json({ prompts: [
+      `Keep ${baseName}'s layout, adopt ${contributorName}'s styling.`,
+      `Use ${contributorName}'s color scheme on ${baseName}'s structure.`,
+      `Merge navigation from ${baseName} with content from ${contributorName}.`,
+      `Use ${baseName} as the base, bring in ${contributorName}'s visual updates.`,
+    ]});
+  }
+
+  const baseFeatures = (baseBlueprint?.features ?? []).map(f => `${f.name}${f.description ? ` (${f.description})` : ''}`).join('\n- ') || 'none';
+  const contribFeatures = (contributorBlueprint?.features ?? []).map(f => `${f.name}${f.description ? ` (${f.description})` : ''}`).join('\n- ') || 'none';
+
+  const userMessage = `You are helping a designer write merge instructions to combine two UI prototypes using AI.
+
+BASE ("${baseName}"):
+Features:
+- ${baseFeatures}
+${baseHtml ? `HTML snippet:\n${baseHtml.slice(0, 3000)}` : ''}
+
+CONTRIBUTOR ("${contributorName}"):
+Features:
+- ${contribFeatures}
+${contributorHtml ? `HTML snippet:\n${contributorHtml.slice(0, 3000)}` : ''}
+
+Your task: generate exactly 6 merge instruction suggestions a designer would actually type. Each should:
+- Be a complete instruction sentence (not a title or label)
+- Reference specific, observable elements from the HTML (e.g. actual colors, font styles, section names, component types you can see in the code)
+- Describe a concrete outcome — what the merged result should look like or preserve
+- Be 10–20 words long
+- NOT use vague phrases like "combine the two", "best of both", or "merge the versions"
+
+Good examples:
+- "Keep ${baseName}'s dark sidebar and top nav, replace the hero with ${contributorName}'s gradient background."
+- "Use ${contributorName}'s card grid layout but keep ${baseName}'s typography and color palette."
+
+Respond with ONLY a JSON array of 6 strings. No markdown, no explanation.`;
+
+  try {
+    const { callClaude } = await import('../agents/tools.js');
+    const raw = await callClaude(apiKey, 'claude-haiku-4-5-20251001', {
+      messages: [{ role: 'user', content: userMessage }],
+    }, { temperature: 0.7, maxOutputTokens: 512 });
+
+    let prompts;
+    try {
+      prompts = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\[[\s\S]*\]/);
+      prompts = match ? JSON.parse(match[0]) : [];
+    }
+
+    res.json({ prompts: Array.isArray(prompts) ? prompts.slice(0, 6) : [] });
+  } catch (err) {
+    res.status(500).json({ prompts: [], error: err.message });
+  }
+});
+
 // POST /api/merge/start
 // Body: { sourceFiles, targetFiles, sourceBlueprint, targetBlueprint, selectedFeatureIds }
 // SSE stream → { type: 'progress', message } → { type: 'plan', summary, plan, questions }
