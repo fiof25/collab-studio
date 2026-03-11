@@ -50,7 +50,7 @@ export function TopNav({ left, right, showBack }: TopNavProps) {
             onClick={() => navigate('/')}
             className="text-base font-bold text-ink-primary hidden sm:block hover:opacity-70 transition-opacity"
           >
-            Collab Studio
+            Collab AI Studio
           </button>
         )}
 

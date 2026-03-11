@@ -150,7 +150,7 @@ export function HomePage() {
       {/* Header */}
       <header className="h-16 flex items-center justify-between px-6 border-b border-line bg-surface-1/80 backdrop-blur-sm flex-shrink-0 z-20">
         <div className="flex items-center gap-2.5">
-          <span className="text-base font-bold text-ink-primary">Collab Studio</span>
+          <span className="text-base font-bold text-ink-primary">Collab AI Studio</span>
         </div>
 
         <div className="flex items-center gap-2">

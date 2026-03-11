@@ -369,7 +369,7 @@ export function MergeModal({ variant }: MergeModalProps) {
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Draft name</label>
             <input
-              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
+              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-ink-muted"
               placeholder="my-new-draft"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -404,7 +404,7 @@ export function MergeModal({ variant }: MergeModalProps) {
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Based on</label>
             <select
-              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
+              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-ink-muted"
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
             >
@@ -418,7 +418,7 @@ export function MergeModal({ variant }: MergeModalProps) {
           <div>
             <label className="text-xs text-ink-muted mb-1.5 block">Version name</label>
             <input
-              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-accent-violet"
+              className="w-full bg-surface-2 border border-line rounded-xl px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-ink-muted"
               placeholder="my-new-version"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -446,27 +446,109 @@ export function MergeModal({ variant }: MergeModalProps) {
 
   // ── Merge variant ────────────────────────────────────────────────────────────
 
-  const baseLatestCode =
-    baseBranch?.checkpoints.at(-1)?.files?.find((f) => f.path === 'index.html')?.content ??
-    baseBranch?.checkpoints.at(-1)?.codeSnapshot ?? '';
-  const contribLatestCode =
-    contributorBranch?.checkpoints.at(-1)?.files?.find((f) => f.path === 'index.html')?.content ??
-    contributorBranch?.checkpoints.at(-1)?.codeSnapshot ?? '';
-  const baseFeatures = baseBranch?.blueprint?.features ?? [];
-  const contribFeatures = contributorBranch?.blueprint?.features ?? [];
+  // Fixed column positions — never swap, only the base designation moves
+  const leftBranch = pickableBranches[0];
+  const rightBranch = pickableBranches[1];
+
+  const handleSelectBase = (id: string) => {
+    if (id === baseId || !id) return;
+    setBaseId(id);
+    setContributorId(id === leftBranch?.id ? (rightBranch?.id ?? '') : (leftBranch?.id ?? ''));
+  };
+
+  const getCode = (b: Branch | undefined) =>
+    b?.checkpoints.at(-1)?.files?.find((f) => f.path === 'index.html')?.content ??
+    b?.checkpoints.at(-1)?.codeSnapshot ?? '';
 
   const previewScale = 310 / 1400;
+  const PREVIEW_H = 200;
+
+  const renderPreviewColumn = (branch: Branch | undefined, isBase: boolean) => {
+    const code = getCode(branch);
+    const features = branch?.blueprint?.features ?? [];
+    const featureSelectedIds = isBase ? selectedBaseFeatureIds : selectedFeatureIds;
+    const toggleFn = isBase ? toggleBaseFeature : toggleFeature;
+
+    return (
+      <div
+        onClick={() => !isBase && handleSelectBase(branch?.id ?? '')}
+        className="flex flex-col gap-5 px-6 pt-4 pb-6 flex-1 min-w-0 rounded-xl transition-all"
+        style={{
+          cursor: isBase ? 'default' : 'pointer',
+          outline: isBase ? '1.5px solid rgb(139 92 246)' : '1.5px solid transparent',
+          outlineOffset: '-2px',
+          background: isBase ? 'rgba(139,92,246,0.04)' : undefined,
+        }}
+      >
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <h3 className="text-base font-bold text-ink-primary truncate">
+            {branch ? toDisplayName(branch.name) : <span className="text-ink-muted font-normal">No branch selected</span>}
+          </h3>
+          {isBase && (
+            <span className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold text-white" style={{ background: 'rgb(139 92 246)' }}>
+              Selected as Base
+            </span>
+          )}
+        </div>
+
+        {/* Preview */}
+        <div
+          className="rounded-lg overflow-hidden bg-surface-2 border border-line relative flex-shrink-0"
+          style={{ height: PREVIEW_H }}
+        >
+          {code ? (
+            <iframe
+              srcDoc={code}
+              className="absolute top-0 left-0 border-none pointer-events-none"
+              style={{ width: '1400px', height: `${Math.ceil(PREVIEW_H / previewScale)}px`, transformOrigin: 'top left', transform: `scale(${previewScale})` }}
+              sandbox="allow-scripts"
+              title={branch?.name}
+            />
+          ) : (
+            <div className="w-full h-full bg-white" />
+          )}
+        </div>
+
+        {/* Features */}
+        {features.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {features.map((f) => (
+              <button
+                key={f.id}
+                onClick={(e) => { e.stopPropagation(); toggleFn(f.id); }}
+                className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
+              >
+                <div
+                  className="flex items-center justify-center flex-shrink-0 rounded"
+                  style={{
+                    width: 20, height: 20,
+                    background: featureSelectedIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
+                    border: featureSelectedIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
+                  }}
+                >
+                  {featureSelectedIds.has(f.id) && <Check size={11} className="text-white" />}
+                </div>
+                <span className="text-sm text-ink-primary">{f.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <Modal open={open} onClose={merging ? () => {} : closeModal} size="merge" bare>
       <div className="flex flex-col overflow-hidden bg-surface-1 border border-line rounded-2xl shadow-float" style={{ maxHeight: '90vh' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
-          <h2 className="text-xl font-bold text-ink-primary tracking-tight">Merge Branches</h2>
+        <div className="relative flex items-center justify-center px-6 py-4 border-b border-line flex-shrink-0">
+          <h2 className="text-base font-semibold text-ink-primary tracking-tight">Merge Mode</h2>
           <button
             onClick={closeModal}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
+            className="absolute right-4 w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
           >
             <X size={15} />
           </button>
@@ -475,116 +557,20 @@ export function MergeModal({ variant }: MergeModalProps) {
         {/* Two-column preview area */}
         <div className="flex flex-1 min-h-0 overflow-y-auto border-b border-line">
 
-          {/* Left: Base branch */}
-          <div className="flex flex-col gap-6 px-6 pt-4 pb-6 flex-1 min-w-0">
-            <div className="flex flex-col gap-3">
-            <h3 className="text-base font-bold text-ink-primary truncate">
-              {baseBranch ? toDisplayName(baseBranch.name) : <span className="text-ink-muted font-normal">No branch selected</span>}
-            </h3>
-
-            {/* Preview */}
-            <div className="rounded-lg overflow-hidden bg-surface-2 border border-line relative flex-shrink-0" style={{ height: 200 }}>
-              {baseLatestCode ? (
-                <iframe
-                  srcDoc={baseLatestCode}
-                  className="absolute top-0 left-0 border-none pointer-events-none"
-                  style={{ width: '1400px', height: `${Math.ceil(220 / previewScale)}px`, transformOrigin: 'top left', transform: `scale(${previewScale})` }}
-                  sandbox="allow-scripts"
-                  title={baseBranch?.name}
-                />
-              ) : (
-                <div className="w-full h-full bg-white" />
-              )}
-            </div>
-            </div>
-
-            {/* Features */}
-            {baseFeatures.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-bold text-ink-primary">{toDisplayName(baseBranch?.name ?? '')}</p>
-                {baseFeatures.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => toggleBaseFeature(f.id)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
-                  >
-                    <div
-                      className="flex items-center justify-center flex-shrink-0 rounded"
-                      style={{
-                        width: 20, height: 20,
-                        background: selectedBaseFeatureIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
-                        border: selectedBaseFeatureIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
-                      }}
-                    >
-                      {selectedBaseFeatureIds.has(f.id) && <Check size={11} className="text-white" />}
-                    </div>
-                    <span className="text-sm text-ink-primary">{f.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
 
           {/* Divider */}
           <div className="w-px bg-line flex-shrink-0" />
 
-          {/* Right: Contributor branch */}
-          <div className="flex flex-col gap-6 px-6 pt-4 pb-6 flex-1 min-w-0">
-            <div className="flex flex-col gap-3">
-            <h3 className="text-base font-bold text-ink-primary truncate">
-              {contributorBranch ? toDisplayName(contributorBranch.name) : <span className="text-ink-muted font-normal">No branch selected</span>}
-            </h3>
+          {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
 
-            {/* Preview */}
-            <div className="rounded-lg overflow-hidden bg-surface-2 border border-line relative flex-shrink-0" style={{ height: 200 }}>
-              {contribLatestCode ? (
-                <iframe
-                  srcDoc={contribLatestCode}
-                  className="absolute top-0 left-0 border-none pointer-events-none"
-                  style={{ width: '1400px', height: `${Math.ceil(220 / previewScale)}px`, transformOrigin: 'top left', transform: `scale(${previewScale})` }}
-                  sandbox="allow-scripts"
-                  title={contributorBranch?.name}
-                />
-              ) : (
-                <div className="w-full h-full bg-white" />
-              )}
-            </div>
-            </div>
-
-            {/* Features */}
-            {contribFeatures.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-bold text-ink-primary">{toDisplayName(contributorBranch?.name ?? '')}</p>
-                {contribFeatures.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => toggleFeature(f.id)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 transition-colors"
-                  >
-                    <div
-                      className="flex items-center justify-center flex-shrink-0 rounded"
-                      style={{
-                        width: 20, height: 20,
-                        background: selectedFeatureIds.has(f.id) ? 'rgb(139 92 246)' : 'transparent',
-                        border: selectedFeatureIds.has(f.id) ? 'none' : '1.5px solid rgb(var(--color-line, 63 63 70))',
-                      }}
-                    >
-                      {selectedFeatureIds.has(f.id) && <Check size={11} className="text-white" />}
-                    </div>
-                    <span className="text-sm text-ink-primary">{f.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Merge Instructions */}
         <div className="px-6 py-4 flex-shrink-0 border-b border-line">
-          <p className="text-base font-bold text-ink-primary mb-4">Merge Instructions</p>
           <textarea
             className="w-full resize-none bg-surface-2 border border-line rounded-lg px-4 py-3 text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors"
-            placeholder="E.g., Use the dark mode from Branch B but keep the sidebar from Branch A. Ensure all primary buttons remain orange."
+            placeholder="E.g., Keep the Base's layout and navigation, but bring in the new hero section and color scheme from the other version."
             value={mergeInstructions}
             onChange={(e) => setMergeInstructions(e.target.value)}
             rows={3}
