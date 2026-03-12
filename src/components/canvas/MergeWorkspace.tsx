@@ -387,7 +387,7 @@ export function MergeWorkspace() {
       <div className="flex items-center gap-3 px-6 h-16 border-b border-line flex-shrink-0 bg-surface-1">
         <button
           onClick={closeModal}
-          className="flex items-center gap-2 text-base text-ink-muted hover:text-ink-primary transition-colors"
+          className="flex items-center gap-2 text-sm text-ink-muted hover:text-ink-primary transition-colors"
         >
           <ArrowLeft size={17} />
           <span>Back</span>
@@ -398,7 +398,7 @@ export function MergeWorkspace() {
 <button
           onClick={handleMerge}
           disabled={!leftBranch || !rightBranch || merging || !!createdBranchId}
-          className="flex items-center gap-2 px-5 py-2 rounded-lg bg-white text-surface-0 text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg bg-white text-surface-0 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0"
         >
           {merging ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
           {merging ? 'Merging…' : createdBranchId ? 'Merged ✓' : 'Merge'}
@@ -407,7 +407,7 @@ export function MergeWorkspace() {
         {createdBranchId && (
           <button
             onClick={() => { closeModal(); navigate(`/branch/${createdBranchId}`); }}
-            className="px-3 py-1.5 rounded-lg border border-violet-500/30 text-violet-400 text-xs font-medium hover:bg-violet-500/10 transition-colors flex-shrink-0"
+            className="px-3 py-1.5 rounded-lg border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition-colors flex-shrink-0"
           >
             Open result →
           </button>
@@ -426,7 +426,7 @@ export function MergeWorkspace() {
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-5">
                 <FourPointStar size={48} className="text-ink-muted" />
                 <p className="text-base text-ink-secondary leading-relaxed">
-                  What should the merge keep from each version?
+                  What should the merge <br /> keep from each version?
                 </p>
               </div>
             ) : (
@@ -600,7 +600,7 @@ export function MergeWorkspace() {
               <button
                 onClick={() => setActiveVersion((v) => (v === 'left' ? 'right' : 'left'))}
                 className="absolute z-10 overflow-hidden shadow-2xl transition-all group border"
-                style={{ right: '2%', top: '5%', width: '32%', height: '30%', borderColor: 'rgba(186,186,228,0.25)' }}
+                style={{ right: '2%', top: '5%', width: '32%', height: '30%', borderColor: 'rgba(186,186,228,0.4)' }}
               >
                 {peekCode ? (
                   <>
@@ -619,10 +619,10 @@ export function MergeWorkspace() {
 
             {/* Version label + base button — above the main preview */}
             <div
-              className="absolute z-20 flex items-center gap-4"
+              className="absolute z-20 flex items-center gap-6 px-4 py-2 bg-surface-1 border border-line"
               style={{ left: '4%', top: '5%' }}
             >
-              <span className="text-lg font-semibold" style={{ color: '#BABAE4' }}>
+              <span className="text-base font-semibold" style={{ color: '#BABAE4' }}>
                 {toDisplayName(activeBranch?.name ?? '')}
               </span>
               {baseId === activeBranch?.id ? (
@@ -653,7 +653,7 @@ export function MergeWorkspace() {
                 className="absolute z-20 overflow-hidden border shadow-2xl transition-colors"
                 style={{
                   left: '4%', top: '12%', right: '6%', bottom: '4%',
-                  borderColor: isSelectMode ? 'rgba(124,58,237,0.6)' : 'rgba(186,186,228,0.25)',
+                  borderColor: isSelectMode ? 'rgba(124,58,237,0.6)' : 'rgba(186,186,228,0.4)',
                 }}
               >
                 {activeCode ? (

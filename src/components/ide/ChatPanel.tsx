@@ -10,9 +10,13 @@ import { ChatInput } from './ChatInput';
 interface ChatPanelProps {
   branchId: string;
   accentColor: string;
+  isPickMode: boolean;
+  onTogglePickMode: () => void;
+  pickedElement: string | null;
+  onClearPickedElement: () => void;
 }
 
-export function ChatPanel({ branchId }: ChatPanelProps) {
+export function ChatPanel({ branchId, isPickMode, onTogglePickMode, pickedElement, onClearPickedElement }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { threads, isStreaming, clearThread } = useChatStore();
   const { sendMessage, abort } = useChatStream(branchId);
@@ -79,6 +83,10 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
         onStop={abort}
         isStreaming={isStreaming}
         onClear={messages.length > 0 ? () => clearThread(branchId) : undefined}
+        isPickMode={isPickMode}
+        onTogglePickMode={onTogglePickMode}
+        pickedElement={pickedElement}
+        onClearPickedElement={onClearPickedElement}
       />
     </div>
   );
