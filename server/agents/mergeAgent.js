@@ -1,4 +1,4 @@
-import { callClaude, readFile } from './tools.js';
+import { callClaude, readFile, formatBlueprintBriefing, formatFeatureBriefing } from './tools.js';
 import { clearMemory } from './memory.js';
 import { config } from '../config/models.js';
 
@@ -7,7 +7,8 @@ const SYSTEM_PROMPT = `You are a Merge Agent for a collaborative prototyping too
 Your job: intelligently merge a SOURCE HTML prototype into a TARGET HTML prototype, bringing in only the selected features.
 
 You receive:
-- The feature names to migrate from source into target
+- Architecture briefings for both source and target (pattern, init flow, state model)
+- The feature names and their behavior/entry points to migrate from source into target
 - A step-by-step merge plan
 - Answers to any conflict questions (font choice, CSS method, etc.)
 - The full source HTML
@@ -17,6 +18,9 @@ Output rules:
 - Output ONLY the complete merged HTML document. No markdown fences, no explanation.
 - Bring in the selected features from source, adapted to match the target's conventions
 - Preserve all existing features from the target
+- If source and target have different architecture patterns, adapt the source features to fit the target's pattern
+- Wire entry points: if a source feature emits events (direction: "out"), connect them to appropriate handlers in the target
+- Reconcile state: if both prototypes have state variables, merge them without duplication
 - If source uses Tailwind but target uses inline CSS: convert to inline CSS
 - If source uses CSS variables but target uses hardcoded values: adapt accordingly
 - Apply conflict resolutions exactly as specified in the answers
@@ -33,6 +37,7 @@ export async function runMergeAgent({
   answers,
   selectedFeatureIds,
   sourceBlueprint,
+  targetBlueprint,
   emit,
   apiKey,
 }) {
@@ -70,7 +75,17 @@ export async function runMergeAgent({
 
     const planText = (plan ?? []).map((s, i) => `${i + 1}. ${s.description}`).join('\n');
 
-    const userMessage = `SELECTED FEATURES TO BRING FROM SOURCE: ${featureNames}
+    // Build architecture context from blueprints
+    const sourceBriefing = formatBlueprintBriefing(sourceBlueprint, 'SOURCE ARCHITECTURE');
+    const targetBriefing = formatBlueprintBriefing(targetBlueprint, 'TARGET ARCHITECTURE');
+    const featureBriefing = formatFeatureBriefing(selectedFeatures);
+
+    const userMessage = `${sourceBriefing}
+
+${targetBriefing}
+
+SELECTED FEATURES TO BRING FROM SOURCE:
+${featureBriefing}
 
 MERGE PLAN:
 ${planText || '1. Intelligently merge selected features from source into target'}
@@ -87,7 +102,7 @@ Output the complete merged HTML document now. No markdown fences — raw HTML on
     const raw = await callClaude(apiKey, config.models.small, {
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
-    }, { temperature: 0.2, maxOutputTokens: 8192 });
+    }, { temperature: 0.2, maxOutputTokens: 32768 });
 
     // Strip markdown fences if Gemini wrapped the output
     let mergedHtml = raw.trim();

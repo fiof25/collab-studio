@@ -143,10 +143,10 @@ mergeRouter.post('/start', async (req, res) => {
 });
 
 // POST /api/merge/execute
-// Body: { sourceFiles, targetFiles, plan, answers, selectedFeatureIds, sourceBlueprint }
+// Body: { sourceFiles, targetFiles, plan, answers, selectedFeatureIds, sourceBlueprint, targetBlueprint }
 // SSE stream → { type: 'progress', message } ... { type: 'done', mergedFiles } | { type: 'error', error }
 mergeRouter.post('/execute', async (req, res) => {
-  const { sourceFiles, targetFiles, plan, answers, selectedFeatureIds, sourceBlueprint } = req.body;
+  const { sourceFiles, targetFiles, plan, answers, selectedFeatureIds, sourceBlueprint, targetBlueprint } = req.body;
 
   if (!Array.isArray(sourceFiles) || !Array.isArray(targetFiles)) {
     return res.status(400).json({ success: false, error: 'Missing sourceFiles or targetFiles' });
@@ -175,6 +175,7 @@ mergeRouter.post('/execute', async (req, res) => {
     answers: answers ?? {},
     selectedFeatureIds: selectedFeatureIds ?? [],
     sourceBlueprint: sourceBlueprint ?? null,
+    targetBlueprint: targetBlueprint ?? null,
     emit,
     apiKey,
   });
