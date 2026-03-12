@@ -29,7 +29,7 @@ The server supports two AI providers, selected by the `AI_PROVIDER` environment 
 | `claude` (default) | `claude-opus-4-6` | `claude-haiku-4-5-20251001` | `ANTHROPIC_API_KEY` |
 | `gemini` | `gemini-3.1-pro-preview` | `gemini-3.1-flash-lite-preview` | `GEMINI_API_KEY` |
 
-Agents (blueprint, snapshot, scout, merge) use `config.models.small`. Chat uses `config.models.large`.
+Snapshot, scout, and merge agents use `config.models.small`. Blueprint agent uses tiered selection: `config.models.large` for initial generation, `config.models.small` for incremental updates. Chat uses `config.models.large`.
 
 ### Config Flow
 
@@ -106,9 +106,30 @@ Users can manually edit a branch's description on the canvas. When they do, `bra
 
 **File:** `server/agents/blueprintAgent.js`
 **Route:** `POST /api/blueprint/generate`
-**Model:** `config.models.small` (haiku-class)
+**Model:** `config.models.large` for initial generation; `config.models.small` for incremental updates
 
 Performs deep analysis of a branch's code and produces a structured JSON summary. This is the AI's persistent memory — blueprints power the merge system and help users understand complex prototypes.
+
+### Tiered Model Selection
+
+The agent uses two tiers depending on whether an existing blueprint is available:
+
+| Condition | Model | Prompt | Max tokens |
+|-----------|-------|--------|------------|
+| No existing blueprint, or `forceFullRegenerate` | `config.models.large` (opus-class) | Full generation prompt | 8192 |
+| Existing blueprint with `architecture` field | `config.models.small` (haiku-class) | Incremental update prompt | 4096 |
+
+The incremental prompt instructs the model to diff existing blueprint fields against current code and update only what changed — new features, modified behavior, added state variables, updated purpose, etc. Unchanged features keep their IDs and descriptions.
+
+### Conversation Context
+
+The agent accepts an optional `conversationContext` object:
+
+```typescript
+{ lastUserMessage: string; lastAIResponse: string }
+```
+
+When provided, the agent uses this to generate an intent-aware `purpose` field. For example, if the user's last message was "add a login gate," the purpose will reflect authentication intent rather than just describing DOM elements.
 
 ### What a Blueprint Contains
 
@@ -116,29 +137,40 @@ Performs deep analysis of a branch's code and produces a structured JSON summary
 interface Blueprint {
   title: string;           // What the prototype is
   summary: string;         // 2-3 sentence overview
-  purpose: string;         // Why it exists
-  techStack: string[];     // Libraries, frameworks detected
-  fileStructure: FileEntry[];  // File tree with descriptions
-  features: BlueprintFeature[];  // Identified features with visual regions
-  designTokens: Record<string, string>;  // Colors, fonts, spacing
-  changeHistory: string[];    // Ordered list of modifications
-  mergeHistory?: MergeRecord[];  // Audit trail of merges
-  raw: string;             // Full text response from Claude
-  generatedAt?: number;    // Timestamp
+  purpose: string;         // Why it exists (intent-aware via conversationContext)
+  architecture: {
+    pattern: string;       // App pattern in one phrase (e.g. "Canvas-based game loop with score tracking")
+    initFlow: string;      // Boot sequence chain (e.g. "DOMContentLoaded → loadState() → renderBoard()")
+    stateModel: StateEntry[];  // Persistent variables with name, type, scope, purpose
+    eventModel: string[];  // Key event wirings as chains (e.g. "form.submit → validate() → setLoggedIn(true)")
+  };
+  features: BlueprintFeature[];
+  techStack: string[];
+  fileStructure: FileEntry[];
+  designTokens: Record<string, string>;
+  changeHistory: string[];
+  parent: { branch: string; relationship: string } | null;
+  mergeHistory?: MergeRecord[];
+  raw: string;             // Markdown rendering of the blueprint
+  generatedAt?: number;
 }
 ```
 
-### Features with Visual Regions
+### Features with Behavior, State & Entry Points
 
-Each blueprint feature can have a `visualRegion` — a CSS selector and label that maps the feature to a part of the preview DOM:
+Each feature captures not just what it is, but how it behaves, what state it touches, and how other code can integrate with it:
 
 ```typescript
 interface BlueprintFeature {
   id: string;
   name: string;
   description: string;
-  files: string[];          // Which files implement this feature
-  dependencies: string[];   // Other feature IDs this depends on
+  behavior: string;         // Concrete actions: what happens on user interaction
+  state: string[];          // State variable names this feature owns or mutates
+  entryPoints: EntryPoint[];  // How other code plugs in (direction: in/out/both)
+  codeRegions: CodeRegion[];  // Searchable anchors (function names, selectors — never line numbers)
+  files: string[];
+  dependencies: string[];
   visualRegion?: {
     selector: string;       // CSS selector (e.g., ".hero-section")
     label: string;          // Human-readable label
@@ -146,12 +178,15 @@ interface BlueprintFeature {
 }
 ```
 
+`entryPoints` and `codeRegions` are critical for merge operations — they tell the Merge Agent exactly where to wire new features into existing code. `state` fields enable conflict detection when two branches mutate the same variables.
+
 These visual regions power the `FeatureOverlay` component in the MergeModal — users click on visual regions to select which features to merge.
 
 ### Blueprint in the Editor
 
 The `BlueprintPanel` component (right panel tab in the Editor) displays the blueprint in a structured, readable format:
-- Feature list with descriptions
+- Architecture overview (pattern, init flow, state model, event model)
+- Feature list with descriptions and behavior
 - Tech stack tags
 - Design tokens (colors, fonts)
 - File structure
@@ -237,11 +272,13 @@ This enables frontend development and testing without API costs.
 
 Blueprints are the foundation of intelligent merging:
 
-1. **Feature identification** — Blueprint features become selectable items in the merge flow
+1. **Feature identification** — Blueprint features (with behavior, state, entry points) become selectable items in the merge flow
 2. **Visual regions** — Feature selectors power the FeatureOverlay click targets
-3. **Conflict detection** — Scout Agent compares blueprints of both branches to identify overlapping features
-4. **Design token merging** — Design tokens help the Merge Agent reconcile styling differences
-5. **Audit trail** — `MergeRecord` is appended to the new branch's blueprint
+3. **Structured briefings** — Merge agents (Scout, Merge) receive formatted text briefings via `formatBlueprintBriefing()` and `formatFeatureBriefing()` instead of raw JSON dumps. Briefings include architecture pattern, init flow, state model, and event model.
+4. **State conflict detection** — `detectStateConflicts()` compares `architecture.stateModel` across source and target blueprints to find overlapping variable names with different types or scopes. Scout Agent receives these conflicts and flags them in its merge plan.
+5. **Dual blueprint context** — The Merge Agent receives both `sourceBlueprint` and `targetBlueprint` briefings, so it can wire source features into the target's architecture (matching init flows, resolving state collisions, connecting event models).
+6. **Design token merging** — Design tokens help the Merge Agent reconcile styling differences
+7. **Audit trail** — `MergeRecord` is appended to the new branch's blueprint
 
 For the full merge pipeline, see `docs/merge-system.md`.
 
