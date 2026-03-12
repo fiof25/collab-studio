@@ -254,7 +254,7 @@ export function MergeWorkspace() {
   const peekCode = getCode(peekBranch);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-surface-0">
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#14141D' }}>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-6 h-16 border-b border-line flex-shrink-0 bg-surface-1">
@@ -394,7 +394,7 @@ export function MergeWorkspace() {
         </div>
 
         {/* ── Preview area ─────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 relative bg-surface-0 overflow-hidden">
+        <div className="flex-1 min-w-0 relative overflow-hidden" style={{ background: '#14141D' }}>
 
           {/* Merging overlay */}
           {merging && (
@@ -408,7 +408,7 @@ export function MergeWorkspace() {
             </div>
           )}
 
-          <div className="absolute inset-0 bg-surface-0">
+          <div className="absolute inset-0" style={{ background: '#14141D' }}>
 
             {/* Peek card — top-right, partially behind main preview */}
             {peekBranch && (
