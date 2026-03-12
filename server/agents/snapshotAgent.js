@@ -1,6 +1,5 @@
 import { callClaude } from './tools.js';
-
-const MODEL = 'claude-haiku-4-5-20251001';
+import { config } from '../config/models.js';
 
 const CONVERSATION_PROMPT = `You are a Snapshot Agent for a collaborative prototyping tool.
 
@@ -94,7 +93,7 @@ export async function runSnapshotAgent({ branchName, files, apiKey, screenshotBa
       };
     }
 
-    const description = await callClaude(apiKey, MODEL, claudePayload, {
+    const description = await callClaude(apiKey, config.models.small, claudePayload, {
       temperature: 0.3,
       maxOutputTokens: 80,
     });

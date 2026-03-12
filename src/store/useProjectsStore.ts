@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Project } from '@/types/branch';
-import { mockProject } from '@/data/mockProject';
+import { mockProject, pawMatchProject } from '@/data/projects';
 
 const emptyCollabProject: Project = {
   id: 'proj_02',
@@ -34,6 +34,7 @@ interface ProjectsStore {
 }
 
 export const useProjectsStore = create<ProjectsStore>((set) => ({
-  projects: [emptyCollabProject, mockProject],
+  // projects: [emptyCollabProject, mockProject, pawMatchProject],
+  projects: [emptyCollabProject, pawMatchProject],
   addProject: (project) => set((s) => ({ projects: [...s.projects, project] })),
 }));

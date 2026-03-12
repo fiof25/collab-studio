@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Merge, GitBranch, Check, ChevronRight, Loader2, CheckCircle2, ArrowRight, Layers, AlertCircle, RotateCcw, Plus, Camera, X } from 'lucide-react';
+import { Merge, GitBranch, Check, ChevronRight, ChevronLeft, Loader2, CheckCircle2, ArrowRight, AlertCircle, RotateCcw, Plus, X, Zap, MessageSquare, ListChecks } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/shared/Button';
@@ -11,7 +10,7 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { toDisplayName } from '@/utils/branchUtils';
 import { useMergeStream, type ConflictQuestion } from '@/hooks/useMergeStream';
 import type { Branch, ProjectFile } from '@/types/branch';
-import type { BlueprintFeature, MergePlanStep } from '@/types/blueprint';
+import type { BlueprintFeature, MergePlanStep, MergeRecord } from '@/types/blueprint';
 
 type MergeStep = 'select' | 'features' | 'qa' | 'executing' | 'done';
 
@@ -33,7 +32,7 @@ interface MergeModalProps {
 export function MergeModal({ variant }: MergeModalProps) {
   const navigate = useNavigate();
   const { activeModal, closeModal, modalContext } = useUIStore();
-  const { project, createBranch, createRootBranch, updateBranch, deleteBranch, updateBlueprint } = useProjectStore();
+  const { project, createBranch, createRootBranch, updateBranch, updateBlueprint } = useProjectStore();
   const pushToast = useUIStore((s) => s.pushToast);
 
   // newBranch / newDraft state
@@ -79,7 +78,6 @@ export function MergeModal({ variant }: MergeModalProps) {
   const [mergeInstructions, setMergeInstructions] = useState('');
   const [merging, setMerging] = useState(false);
   const [mergeErrMsg, setMergeErrMsg] = useState<string | null>(null);
-  const [selectedBaseFeatureIds, setSelectedBaseFeatureIds] = useState<Set<string>>(new Set());
   const [aiPrompts, setAiPrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
 
@@ -111,7 +109,6 @@ export function MergeModal({ variant }: MergeModalProps) {
       setStep('select');
       const bBranch = branches.find((b) => b.id === base);
       const cBranch = branches.find((b) => b.id === contributor);
-      setSelectedBaseFeatureIds(new Set((bBranch?.blueprint?.features ?? []).map((f) => f.id)));
       setSelectedFeatureIds(new Set((cBranch?.blueprint?.features ?? []).map((f) => f.id)));
       setMergeInstructions('');
       setMerging(false);
@@ -214,20 +211,6 @@ export function MergeModal({ variant }: MergeModalProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, contributorBranch?.id, baseBranch?.id, Array.from(selectedFeatureIds).sort().join(',')]);
 
-  // Clicking a branch in the select step sets it as base; clicking again deselects
-  const handleBranchClick = (id: string) => {
-    if (baseId === id) {
-      setBaseId('');
-      setContributorId('');
-    } else {
-      setBaseId(id);
-      // The contributor is whichever pickable branch isn't the base
-      // (for 2-branch case; with more branches this would be the first non-base)
-      const others = pickableBranches.filter((b) => b.id !== id);
-      setContributorId(others[0]?.id ?? '');
-    }
-  };
-
   const contributorFeatures: BlueprintFeature[] = contributorBranch?.blueprint?.features ?? [];
 
   const toggleFeature = (id: string) => {
@@ -291,7 +274,21 @@ export function MergeModal({ variant }: MergeModalProps) {
 
     setCreatedBranchId(child.id);
 
-    // Fire-and-forget blueprint + snapshot agents
+    // Build merge record for audit trail
+    const mergeRecord: MergeRecord = {
+      sourceId: contributorBranch.id,
+      sourceName: toDisplayName(contributorBranch.name),
+      targetId: baseBranch.id,
+      targetName: toDisplayName(baseBranch.name),
+      featuresMigrated: Array.from(selectedFeatureIds),
+      mergePlan: scoutPlan,
+      conflictsResolved: scoutQuestions
+        .filter((q) => questionAnswers[q.id])
+        .map((q) => `${q.question} → ${questionAnswers[q.id]}`),
+      timestamp: Date.now(),
+    };
+
+    // Fire-and-forget blueprint + snapshot agents (include merge history)
     void fetch('/api/blueprint/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -303,7 +300,12 @@ export function MergeModal({ variant }: MergeModalProps) {
       }),
     })
       .then((r) => r.json())
-      .then((data) => { if (data.success) updateBlueprint(child.id, data.blueprint); })
+      .then((data) => {
+        if (data.success) {
+          const blueprint = { ...data.blueprint, mergeHistory: [mergeRecord, ...(data.blueprint.mergeHistory ?? [])] };
+          updateBlueprint(child.id, blueprint);
+        }
+      })
       .catch(() => {});
 
     addProgress('Done!');
@@ -320,14 +322,6 @@ export function MergeModal({ variant }: MergeModalProps) {
       closeModal();
       setLoading(false);
     }, 600);
-  };
-
-  const toggleBaseFeature = (id: string) => {
-    setSelectedBaseFeatureIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
   };
 
   const handleFlatMerge = async () => {
@@ -374,6 +368,39 @@ export function MergeModal({ variant }: MergeModalProps) {
           files: mergedFiles,
         }],
       });
+
+      // Build merge record for audit trail (quick merge — no scout plan)
+      const mergeRecord: MergeRecord = {
+        sourceId: contributorBranch.id,
+        sourceName: toDisplayName(contributorBranch.name),
+        targetId: baseBranch.id,
+        targetName: toDisplayName(baseBranch.name),
+        featuresMigrated: Array.from(selectedFeatureIds),
+        mergePlan: [],
+        conflictsResolved: [],
+        timestamp: Date.now(),
+      };
+
+      // Fire-and-forget blueprint generation with merge history
+      void fetch('/api/blueprint/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId: child.id,
+          branchName: child.name,
+          parentBranchName: baseBranch.name,
+          files: mergedFiles,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            const blueprint = { ...data.blueprint, mergeHistory: [mergeRecord, ...(data.blueprint.mergeHistory ?? [])] };
+            updateBlueprint(child.id, blueprint);
+          }
+        })
+        .catch(() => {});
+
       pushToast({ type: 'success', message: 'Merge complete' });
       closeModal();
     } else {
@@ -546,196 +573,419 @@ export function MergeModal({ variant }: MergeModalProps) {
   };
 
 
+  const canAdvanceFromSelect = !!baseBranch && !!contributorBranch;
+  const baseFeatures: BlueprintFeature[] = baseBranch?.blueprint?.features ?? [];
+  const allQuestionsAnswered = scoutQuestions.length === 0 || scoutQuestions.every((q) => questionAnswers[q.id]);
+
+  const handleAnswerQuestion = (questionId: string, answer: string) => {
+    setQuestionAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  };
+
   return (
-    <Modal open={open} onClose={merging ? () => {} : closeModal} size="merge" bare>
+    <Modal open={open} onClose={step === 'executing' ? () => {} : closeModal} size="merge" bare>
       <div className="flex flex-col overflow-hidden bg-surface-1 border border-line rounded-2xl shadow-float" style={{ maxHeight: '90vh' }}>
 
-        {/* Header */}
-        <div className="relative flex items-center justify-center px-6 py-4 border-b border-line flex-shrink-0">
-          <h2 className="text-base font-semibold text-ink-primary tracking-tight">Merge Mode</h2>
-          <button
-            onClick={closeModal}
-            className="absolute right-4 w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Two-column preview area + instructions (with loading overlay) */}
-        <div className="relative flex-1 min-h-0 flex flex-col">
-
-          {/* Loading overlay */}
-          {merging && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-none" style={{ background: 'rgba(13,13,18,0.75)', backdropFilter: 'blur(4px)' }}>
-              <Loader2 size={28} className="animate-spin" style={{ color: 'rgb(139 92 246)' }} />
-              <p className="text-sm font-medium text-ink-primary">Merging versions…</p>
-              <p className="text-xs text-ink-muted">This may take a moment</p>
-            </div>
-          )}
-
-          {/* Two-column preview area */}
-          <div className="flex flex-1 min-h-0 border-b border-line">
-
-            <div
-              className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
-              style={{ border: baseId === leftBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
+        {/* Header with step indicator */}
+        <div className="relative flex flex-col items-center px-6 pt-4 pb-3 border-b border-line flex-shrink-0">
+          <div className="flex items-center justify-center w-full">
+            <h2 className="text-base font-semibold text-ink-primary tracking-tight">{STEP_TITLE[step]}</h2>
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
             >
-              {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
-            </div>
-
-            {/* Divider */}
-            <div className="w-px bg-line flex-shrink-0" />
-
-            <div
-              className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
-              style={{ border: baseId === rightBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
-            >
-              {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
-            </div>
-
+              <X size={15} />
+            </button>
           </div>
-
+          {/* Step dots */}
+          <div className="flex items-center gap-1.5 mt-2.5">
+            {(['select', 'features', 'qa', 'executing', 'done'] as MergeStep[]).map((s) => (
+              <div
+                key={s}
+                className={clsx(
+                  'h-1.5 rounded-full transition-all',
+                  s === step ? 'w-6 bg-accent-violet' : STEP_INDEX[s] < STEP_INDEX[step] ? 'w-1.5 bg-accent-violet/50' : 'w-1.5 bg-line'
+                )}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* Merge Instructions */}
-        <div className="px-6 py-4 flex-shrink-0 border-b border-line">
-          {/* Suggested prompts */}
-          {(aiPrompts.length > 0 || promptsLoading) && (
-            <div className="mb-3 flex items-center gap-2">
-              {promptsLoading ? (
-                <div className="flex items-center gap-1.5">
-                  <Loader2 size={11} className="animate-spin text-ink-muted" />
-                  <span className="text-xs text-ink-muted">Generating suggestions…</span>
+        {/* ── STEP: select ────────────────────────────────── */}
+        {step === 'select' && (
+          <>
+            <div className="relative flex-1 min-h-0 flex flex-col">
+              <div className="flex flex-1 min-h-0 border-b border-line">
+                <div
+                  className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
+                  style={{ border: baseId === leftBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
+                >
+                  {renderPreviewColumn(leftBranch, baseId === leftBranch?.id)}
                 </div>
-              ) : (
-                <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden">
-                  {aiPrompts.map((prompt, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setMergeInstructions((prev) => prev ? `${prev} ${prompt}` : prompt)}
-                      className="flex-shrink-0 px-3 py-1.5 rounded-full border border-line bg-surface-2 hover:bg-surface-3 text-xs text-ink-secondary transition-colors whitespace-nowrap"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+                <div className="w-px bg-line flex-shrink-0" />
+                <div
+                  className="flex flex-col flex-1 min-w-0 min-h-0 rounded-none transition-all"
+                  style={{ border: baseId === rightBranch?.id ? '2px solid rgb(139 92 246)' : '2px solid transparent' }}
+                >
+                  {renderPreviewColumn(rightBranch, baseId === rightBranch?.id)}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0">
+              <button
+                onClick={closeModal}
+                className="px-5 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <div className="flex items-center gap-2">
+                {/* Quick merge — skips features/qa */}
+                <button
+                  onClick={() => { setStep('features'); }}
+                  disabled={!canAdvanceFromSelect}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: '#ffffff', color: '#0D0D12' }}
+                >
+                  <ChevronRight size={13} />
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP: features ──────────────────────────────── */}
+        {step === 'features' && (
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto border-b border-line">
+              <div className="flex gap-0 min-h-0" style={{ minHeight: 400 }}>
+                {/* Left: contributor preview with feature overlay */}
+                <div className="flex-1 min-w-0 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/50 text-white/90">Contributor</span>
+                    <span className="text-sm font-medium text-ink-primary truncate">{contributorBranch ? toDisplayName(contributorBranch.name) : ''}</span>
+                  </div>
+                  {contributorBranch && (
+                    <SourcePreviewWithOverlay
+                      branch={contributorBranch}
+                      features={contributorFeatures}
+                      selectedIds={selectedFeatureIds}
+                      onToggle={toggleFeature}
+                    />
+                  )}
+                  {contributorFeatures.length === 0 && (
+                    <div className="mt-3 px-3 py-2 rounded-lg bg-surface-2 border border-line">
+                      <p className="text-xs text-ink-muted">No blueprint features detected. The AI will analyze the full code during merge.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="w-px bg-line flex-shrink-0" />
+
+                {/* Right: feature checklists + instructions */}
+                <div className="flex-1 min-w-0 p-4 flex flex-col gap-4">
+                  {/* Contributor features checklist */}
+                  {contributorFeatures.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Features to bring in</h4>
+                      <div className="space-y-1.5">
+                        {contributorFeatures.map((f) => (
+                          <label key={f.id} className="flex items-start gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-2 cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={selectedFeatureIds.has(f.id)}
+                              onChange={() => toggleFeature(f.id)}
+                              className="mt-0.5 accent-accent-violet"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-ink-primary">{f.name}</p>
+                              {f.description && <p className="text-xs text-ink-muted mt-0.5">{f.description}</p>}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Base features (read-only, all selected) */}
+                  {baseFeatures.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Base features (kept)</h4>
+                      <div className="space-y-1">
+                        {baseFeatures.map((f) => (
+                          <div key={f.id} className="flex items-start gap-2.5 px-3 py-1.5 rounded-lg opacity-60">
+                            <Check size={14} className="text-accent-violet mt-0.5 flex-shrink-0" />
+                            <p className="text-sm text-ink-primary">{f.name}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Merge instructions */}
+                  <div className="flex-1">
+                    <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Instructions (optional)</h4>
+                    {(aiPrompts.length > 0 || promptsLoading) && (
+                      <div className="mb-2 flex items-center gap-1.5">
+                        {promptsLoading ? (
+                          <div className="flex items-center gap-1.5">
+                            <Loader2 size={11} className="animate-spin text-ink-muted" />
+                            <span className="text-xs text-ink-muted">Generating suggestions…</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden">
+                            {aiPrompts.map((prompt, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setMergeInstructions((prev) => prev ? `${prev} ${prompt}` : prompt)}
+                                className="flex-shrink-0 px-2.5 py-1 rounded-full border border-line bg-surface-2 hover:bg-surface-3 text-[11px] text-ink-secondary transition-colors whitespace-nowrap"
+                              >
+                                {prompt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <textarea
+                      className="w-full resize-none bg-surface-2 border border-line rounded-lg px-3 py-2.5 text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors leading-relaxed"
+                      placeholder="E.g., Keep the Base's layout but bring in the new hero section…"
+                      value={mergeInstructions}
+                      onChange={(e) => setMergeInstructions(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0">
+              <button
+                onClick={() => setStep('select')}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
+              >
+                <ChevronLeft size={13} />
+                Back
+              </button>
+              <div className="flex items-center gap-2">
+                {/* Quick merge — skip scout */}
+                <button
+                  onClick={handleFlatMerge}
+                  disabled={merging}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors disabled:opacity-40"
+                >
+                  <Zap size={13} />
+                  {merging ? 'Merging…' : 'Quick Merge'}
+                </button>
+                {/* Full flow — advance to scout/qa */}
+                <button
+                  onClick={() => setStep('qa')}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity"
+                  style={{ background: '#ffffff', color: '#0D0D12' }}
+                >
+                  <MessageSquare size={13} />
+                  Analyze & Review
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP: qa (scout analysis + questions + plan review) ── */}
+        {step === 'qa' && (
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto border-b border-line px-6 py-5" style={{ minHeight: 300 }}>
+              {/* Scout loading */}
+              {scoutLoading && (
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
+                  <Loader2 size={28} className="animate-spin" style={{ color: 'rgb(139 92 246)' }} />
+                  <p className="text-sm font-medium text-ink-primary">Analyzing both versions…</p>
+                  <p className="text-xs text-ink-muted">The Scout agent is comparing code and blueprints</p>
+                </div>
+              )}
+
+              {/* Scout results */}
+              {scoutDone && (
+                <div className="space-y-5">
+                  {/* Summary */}
+                  {scoutSummary && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Analysis Summary</h4>
+                      <div className="px-4 py-3 rounded-xl bg-surface-2 border border-line">
+                        <p className="text-sm text-ink-primary leading-relaxed">{scoutSummary}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Questions */}
+                  {scoutQuestions.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
+                        <MessageSquare size={12} className="inline mr-1.5 -mt-0.5" />
+                        Resolve conflicts ({Object.keys(questionAnswers).length}/{scoutQuestions.length})
+                      </h4>
+                      <div className="space-y-3">
+                        {scoutQuestions.map((q) => (
+                          <div key={q.id} className="px-4 py-3 rounded-xl bg-surface-2 border border-line">
+                            <p className="text-sm font-medium text-ink-primary mb-2">{q.question}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {q.options.map((opt) => (
+                                <button
+                                  key={opt}
+                                  onClick={() => handleAnswerQuestion(q.id, opt)}
+                                  className={clsx(
+                                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                    questionAnswers[q.id] === opt
+                                      ? 'bg-accent-violet text-white'
+                                      : 'bg-surface-3 text-ink-secondary hover:bg-surface-3/80 border border-line'
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Merge plan */}
+                  {scoutPlan.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
+                        <ListChecks size={12} className="inline mr-1.5 -mt-0.5" />
+                        Merge Plan ({scoutPlan.length} steps)
+                      </h4>
+                      <div className="rounded-xl bg-surface-2 border border-line divide-y divide-line">
+                        {scoutPlan.map((planStep, i) => (
+                          <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                            <span className={clsx(
+                              'flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase',
+                              planStep.action === 'create' ? 'bg-emerald-500/15 text-emerald-400' :
+                              planStep.action === 'modify' ? 'bg-amber-500/15 text-amber-400' :
+                              planStep.action === 'copy' ? 'bg-cyan-500/15 text-cyan-400' :
+                              'bg-red-500/15 text-red-400'
+                            )}>
+                              {planStep.action}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-mono text-ink-secondary">{planStep.file}</p>
+                              <p className="text-xs text-ink-muted mt-0.5">{planStep.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No questions / empty plan fallback */}
+                  {scoutQuestions.length === 0 && scoutPlan.length === 0 && !scoutSummary && (
+                    <div className="flex flex-col items-center justify-center gap-2 py-8">
+                      <CheckCircle2 size={24} className="text-emerald-400" />
+                      <p className="text-sm text-ink-primary font-medium">No conflicts detected</p>
+                      <p className="text-xs text-ink-muted">The merge looks straightforward. Ready to proceed.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-          <textarea
-            className="w-full resize-none bg-surface-2 border border-line rounded-lg px-4 py-3 text-base text-ink-primary placeholder:text-ink-muted outline-none focus:border-ink-muted transition-colors leading-relaxed"
-            placeholder="E.g., Keep the Base's layout and navigation, but bring in the new hero section and color scheme from the other version."
-            value={mergeInstructions}
-            onChange={(e) => setMergeInstructions(e.target.value)}
-            rows={4}
-            style={{ fontFamily: 'inherit' }}
-          />
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-3 flex-shrink-0">
-          {mergeErrMsg && (
-            <p className="flex-1 text-xs text-red-400">{mergeErrMsg}</p>
-          )}
-          <button
-            onClick={closeModal}
-            className="px-5 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleFlatMerge}
-            disabled={!baseBranch || !contributorBranch || merging}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#ffffff', color: '#0D0D12' }}
-          >
-            {merging ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
-                Merging…
-              </>
-            ) : (
-              <>
-                <Merge size={13} />
-                Merge
-              </>
-            )}
-          </button>
-        </div>
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0">
+              <button
+                onClick={() => setStep('features')}
+                disabled={scoutLoading}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors disabled:opacity-40"
+              >
+                <ChevronLeft size={13} />
+                Back
+              </button>
+              <div className="flex items-center gap-2">
+                {mergeError && <p className="text-xs text-red-400">{mergeError}</p>}
+                <button
+                  onClick={handleExecuteMerge}
+                  disabled={scoutLoading || (scoutQuestions.length > 0 && !allQuestionsAnswered)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: '#ffffff', color: '#0D0D12' }}
+                >
+                  <Merge size={13} />
+                  Merge
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP: executing ─────────────────────────────── */}
+        {step === 'executing' && (
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto border-b border-line px-6 py-5" style={{ minHeight: 250 }}>
+              <div className="space-y-1.5">
+                {progressLines.map((line, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    {i === progressLines.length - 1 && !line.startsWith('Done') && !line.startsWith('Error') ? (
+                      <Loader2 size={12} className="animate-spin text-accent-violet mt-0.5 flex-shrink-0" />
+                    ) : line.startsWith('Error') ? (
+                      <AlertCircle size={12} className="text-red-400 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <CheckCircle2 size={12} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                    )}
+                    <p className={clsx('text-sm', line.startsWith('Error') ? 'text-red-400' : 'text-ink-primary')}>{line}</p>
+                  </div>
+                ))}
+                <div ref={progressEndRef} />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-3 flex-shrink-0">
+              {mergeError && (
+                <button
+                  onClick={() => setStep('qa')}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
+                >
+                  <RotateCcw size={13} />
+                  Retry
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── STEP: done ──────────────────────────────────── */}
+        {step === 'done' && (
+          <>
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 py-12 border-b border-line">
+              <CheckCircle2 size={40} className="text-emerald-400" />
+              <p className="text-lg font-semibold text-ink-primary">Merge complete</p>
+              <p className="text-sm text-ink-muted">Your new branch has been created</p>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-3 flex-shrink-0">
+              <button
+                onClick={closeModal}
+                className="px-5 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-primary hover:bg-surface-2 transition-colors"
+              >
+                Close
+              </button>
+              {createdBranchId && (
+                <button
+                  onClick={() => { closeModal(); navigate(`/branch/${createdBranchId}`); }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: '#ffffff', color: '#0D0D12' }}
+                >
+                  <ArrowRight size={13} />
+                  Open Branch
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
       </div>
     </Modal>
   );
 }
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
-function BlendBranchCard({
-  branch,
-  selected,
-  role,
-  onClick,
-}: {
-  branch: Branch;
-  selected: boolean;
-  role: 'base' | 'contributor' | null;
-  onClick: () => void;
-}) {
-  const latestCode =
-    branch.checkpoints.at(-1)?.files?.find((f) => f.path === 'index.html')?.content ??
-    branch.checkpoints.at(-1)?.codeSnapshot ?? '';
-
-  return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        'w-full text-left rounded-2xl border overflow-hidden transition-all',
-        selected
-          ? 'border-accent-violet ring-1 ring-accent-violet/40'
-          : role === 'contributor'
-          ? 'border-line/60 ring-1 ring-line/30'
-          : 'border-line hover:border-line-accent'
-      )}
-    >
-      <div className="relative h-36 overflow-hidden bg-white">
-        {latestCode ? (
-          <iframe
-            srcDoc={latestCode}
-            className="absolute top-0 left-0 border-none pointer-events-none"
-            style={{ width: '1400px', height: '900px', transformOrigin: 'top left', transform: 'scale(0.30)' }}
-            sandbox="allow-scripts"
-            title={branch.name}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-surface-2">
-            <span className="text-xs text-ink-muted">No preview yet</span>
-          </div>
-        )}
-        {role && (
-          <div
-            className={clsx(
-              'absolute top-2 left-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold',
-              role === 'base'
-                ? 'bg-accent-violet text-white'
-                : 'bg-black/50 text-white/80'
-            )}
-          >
-            {role === 'base' ? 'Base' : 'Contributor'}
-          </div>
-        )}
-        {selected && (
-          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent-violet flex items-center justify-center">
-            <Check size={10} className="text-white" />
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-2">
-        <span className="text-xs font-medium text-ink-primary truncate flex-1">{toDisplayName(branch.name)}</span>
-        {branch.description && (
-          <span className="text-[10px] text-ink-muted truncate max-w-[80px]">{branch.description}</span>
-        )}
-      </div>
-    </button>
-  );
-}
 
 function SourcePreviewWithOverlay({
   branch,
@@ -776,26 +1026,3 @@ function SourcePreviewWithOverlay({
   );
 }
 
-function TargetThumbnail({ branch }: { branch: Branch }) {
-  const latestCode =
-    branch.checkpoints.at(-1)?.files?.find((f) => f.path === 'index.html')?.content ??
-    branch.checkpoints.at(-1)?.codeSnapshot ?? '';
-
-  return (
-    <div className="relative h-32 rounded-xl overflow-hidden border border-line bg-white">
-      {latestCode ? (
-        <iframe
-          srcDoc={latestCode}
-          className="absolute top-0 left-0 border-none pointer-events-none"
-          style={{ width: '800px', height: '600px', transformOrigin: 'top left', transform: 'scale(0.20)' }}
-          sandbox="allow-scripts"
-          title={branch.name}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-surface-2">
-          <span className="text-xs text-ink-muted">No preview</span>
-        </div>
-      )}
-    </div>
-  );
-}

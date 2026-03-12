@@ -9,7 +9,7 @@ interface BlueprintPanelProps {
   accentColor: string;
 }
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = '';
 
 function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{3,8}$/.test(value.trim());

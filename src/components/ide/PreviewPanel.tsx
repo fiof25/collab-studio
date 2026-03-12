@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone } from 'lucide-react';
+import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone, Camera, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { FullCodeViewer } from './CodeViewer';
 import { BlueprintPanel } from './BlueprintPanel';
@@ -34,11 +34,14 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
   const [commentMode, setCommentMode] = useState(false);
   const [pendingPin, setPendingPin] = useState<{ x: number; y: number } | null>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [thumbnailMode, setThumbnailMode] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const setPanelSide = useUIStore((s) => s.setPanelSide);
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null);
   const branch = useProjectStore((s) => s.project?.branches.find((b) => b.id === branchId));
+  const updateBranch = useProjectStore((s) => s.updateBranch);
   const addComment = useProjectStore((s) => s.addComment);
   const addReply = useProjectStore((s) => s.addReply);
   const latestCheckpoint = branch?.checkpoints[branch.checkpoints.length - 1];
@@ -48,6 +51,7 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
     latestCheckpoint?.codeSnapshot ??
     '';
   const pinnedComments = (branch?.comments ?? []).filter((c) => c.x !== undefined && c.y !== undefined);
+  const currentScrollY = branch?.previewScrollY ?? 0;
 
   // Resolve active file — fall back to index.html or first file; if path not in list, reset
   const activeFile =
@@ -115,10 +119,23 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
               <MonitorSmartphone size={14} />
             </button>
             <div className="w-px h-4 bg-line mx-0.5" />
+            {/* Thumbnail selector */}
+            <button
+              onClick={() => setThumbnailMode(true)}
+              title="Set canvas thumbnail"
+              className={clsx(
+                'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
+                thumbnailMode
+                  ? 'text-accent-violet bg-accent-violet/10'
+                  : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-2'
+              )}
+            >
+              <Camera size={15} />
+            </button>
             {/* Comment mode toggle */}
             <button
               onClick={() => { setCommentMode((v) => !v); setPendingPin(null); setActiveCommentId(null); }}
-              title={commentMode ? 'Exit comment mode' : 'Add comments'}
+              title={commentMode ? 'Exit annotation mode' : 'Annotate preview'}
               className={clsx(
                 'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
                 commentMode ? 'bg-accent-violet text-white' : 'text-ink-muted hover:text-ink-secondary'
@@ -146,6 +163,7 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
         {activeTab === 'preview' ? (
           <div className="w-full h-full overflow-hidden bg-surface-0 p-2 flex items-stretch justify-center">
             <div
+              ref={previewContainerRef}
               className="h-full bg-white rounded-lg overflow-hidden shadow-float relative transition-all duration-200"
               style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
             >
@@ -156,7 +174,7 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
                   srcDoc={latestCode}
                   className="w-full h-full border-none"
                   title="Preview"
-                  sandbox="allow-scripts"
+                  sandbox="allow-scripts allow-same-origin"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -207,6 +225,19 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
                   Click anywhere to leave a comment
                 </div>
               )}
+
+              {/* Thumbnail selection overlay */}
+              {thumbnailMode && (
+                <ThumbnailSelector
+                  containerHeight={previewContainerRef.current?.clientHeight ?? 600}
+                  initialY={currentScrollY}
+                  onConfirm={(y) => {
+                    updateBranch(branchId, { previewScrollY: y });
+                    setThumbnailMode(false);
+                  }}
+                  onCancel={() => setThumbnailMode(false)}
+                />
+              )}
             </div>
           </div>
         ) : activeTab === 'code' ? (
@@ -252,6 +283,97 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
         ) : (
           <BlueprintPanel branchId={branchId} accentColor={accentColor} />
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Thumbnail Selector ────────────────────────────────────────────────────────
+
+function ThumbnailSelector({
+  containerHeight,
+  initialY,
+  onConfirm,
+  onCancel,
+}: {
+  containerHeight: number;
+  initialY: number;
+  onConfirm: (y: number) => void;
+  onCancel: () => void;
+}) {
+  const frameRatio = 138 / 240;
+  const frameH = containerHeight * frameRatio;
+  const maxY = Math.max(0, containerHeight - frameH);
+
+  const [frameY, setFrameY] = useState(Math.min(initialY, maxY));
+  const [dragging, setDragging] = useState(false);
+  const dragStartRef = useRef({ mouseY: 0, startFrameY: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    dragStartRef.current = { mouseY: e.clientY, startFrameY: frameY };
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const handleMove = (e: MouseEvent) => {
+      const delta = e.clientY - dragStartRef.current.mouseY;
+      const next = Math.min(maxY, Math.max(0, dragStartRef.current.startFrameY + delta));
+      setFrameY(next);
+    };
+    const handleUp = () => setDragging(false);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [dragging, maxY]);
+
+  return (
+    <div className="absolute inset-0 z-30">
+      {/* Dark overlay above the frame */}
+      <div
+        className="absolute inset-x-0 top-0 bg-black/50"
+        style={{ height: frameY }}
+      />
+      {/* The draggable frame */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={clsx(
+          'absolute inset-x-0 border-2 border-accent-violet rounded-sm',
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        )}
+        style={{ top: frameY, height: frameH }}
+      >
+        {/* Grab handle indicator */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
+          <div className="w-8 h-1 rounded-full bg-white/60" />
+        </div>
+      </div>
+      {/* Dark overlay below the frame */}
+      <div
+        className="absolute inset-x-0 bottom-0 bg-black/50"
+        style={{ top: frameY + frameH }}
+      />
+      {/* Confirm / Cancel buttons */}
+      <div
+        className="absolute flex gap-2 right-2"
+        style={{ top: Math.min(frameY + frameH + 8, containerHeight - 36) }}
+      >
+        <button
+          onClick={onCancel}
+          className="w-7 h-7 rounded-lg bg-surface-1/90 backdrop-blur-sm border border-line flex items-center justify-center text-ink-muted hover:text-ink-primary transition-colors"
+        >
+          <X size={14} />
+        </button>
+        <button
+          onClick={() => onConfirm(frameY)}
+          className="w-7 h-7 rounded-lg bg-accent-violet text-white flex items-center justify-center hover:bg-accent-violet/90 transition-colors"
+        >
+          <Check size={14} />
+        </button>
       </div>
     </div>
   );
@@ -500,4 +622,3 @@ function NewCommentPin({
     </div>
   );
 }
-

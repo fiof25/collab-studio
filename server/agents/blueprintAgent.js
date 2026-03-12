@@ -1,7 +1,6 @@
 import { callClaude, listFiles } from './tools.js';
 import { clearMemory } from './memory.js';
-
-const MODEL = 'claude-haiku-4-5-20251001';
+import { config } from '../config/models.js';
 
 const SYSTEM_PROMPT = `You are a Blueprint Agent for a collaborative prototyping tool called Collab Studio.
 
@@ -40,7 +39,7 @@ JSON structure:
   "parent": null
 }
 
-For features: identify semantic sections like Navigation, Hero, Features Grid, Pricing, Testimonials, Footer, Authentication, etc. Each section the user would recognize as a distinct piece of the UI is a feature. Don't create features for utility code.`;
+For features: identify the distinct, user-recognizable parts of the UI — adapt to whatever the prototype is (e.g. game: Board, Controls, Score; dashboard: Sidebar, Charts, Filters; landing page: Nav, Hero, Features, Footer). Each part the user would recognize as a distinct piece of the UI is a feature. Don't create features for utility code.`;
 
 export async function runBlueprintAgent({ branchId, branchName, parentBranchName, files, apiKey }) {
   const agentId = `blueprint_${branchId}_${Date.now()}`;
@@ -59,7 +58,7 @@ ${fileDump}
 
 Generate the BLUEPRINT JSON now.`;
 
-    const raw = await callClaude(apiKey, MODEL, {
+    const raw = await callClaude(apiKey, config.models.small, {
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
     }, { temperature: 0.2, maxOutputTokens: 4096 });

@@ -1,6 +1,7 @@
 import express from 'express';
 import { runBlueprintAgent } from '../agents/blueprintAgent.js';
 import { runSnapshotAgent } from '../agents/snapshotAgent.js';
+import { config } from '../config/models.js';
 
 export const blueprintRouter = express.Router();
 
@@ -53,7 +54,7 @@ blueprintRouter.post('/generate', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = config.apiKey;
   if (!apiKey || apiKey === 'your_key_here') {
     // Mock mode
     return res.json({ success: true, blueprint: mockBlueprint(branchName, parentBranchName) });
@@ -73,7 +74,7 @@ blueprintRouter.post('/snapshot', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = config.apiKey;
   if (!apiKey || apiKey === 'your_key_here') {
     // Mock: use the user prompt directly if available
     const description = userPrompt

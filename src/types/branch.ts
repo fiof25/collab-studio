@@ -64,6 +64,7 @@ export interface Branch {
   collaborators: Collaborator[];
   tags: string[];
   position: { x: number; y: number };
+  previewScrollY?: number; // px offset for canvas thumbnail; 0 = top
   comments: Comment[];
   blueprint?: Blueprint | null;
 }

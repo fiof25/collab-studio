@@ -1,7 +1,6 @@
 import { callClaude, readFile } from './tools.js';
 import { clearMemory } from './memory.js';
-
-const MODEL = 'claude-haiku-4-5-20251001';
+import { config } from '../config/models.js';
 
 const SYSTEM_PROMPT = `You are a Merge Agent for a collaborative prototyping tool called Collab Studio.
 
@@ -85,7 +84,7 @@ ${targetHtml.slice(0, 12000)}
 
 Output the complete merged HTML document now. No markdown fences — raw HTML only.`;
 
-    const raw = await callClaude(apiKey, MODEL, {
+    const raw = await callClaude(apiKey, config.models.small, {
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
     }, { temperature: 0.2, maxOutputTokens: 8192 });

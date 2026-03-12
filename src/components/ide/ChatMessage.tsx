@@ -1,33 +1,27 @@
 import { memo } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Code2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { ChatMessage as ChatMessageType } from '@/types/chat';
+import { QuestionCard } from './QuestionCard';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   isLastAssistant: boolean;
   onRevert?: (code: string) => void;
   revertCode?: string;
+  onQuestionAnswer?: (answer: string) => void;
 }
 
 function renderContent(content: string) {
   return content.replace(/```[\w+.-]+[ \t]*\r?\n[\s\S]*?```/g, '').trim();
 }
 
-function isWritingCode(content: string) {
-  const openIdx = content.indexOf('```html');
-  if (openIdx === -1) return false;
-  const closeIdx = content.indexOf('```', openIdx + 7);
-  return closeIdx === -1;
-}
-
-export const ChatMessage = memo(function ChatMessage({ message, isLastAssistant, onRevert, revertCode }: ChatMessageProps) {
+export const ChatMessage = memo(function ChatMessage({ message, isLastAssistant, onRevert, revertCode, onQuestionAnswer }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  const writingCode = message.isStreaming && isWritingCode(message.content);
-  const textBeforeCode = writingCode
-    ? message.content.slice(0, message.content.indexOf('```html')).trim()
-    : null;
   const displayContent = renderContent(message.content);
+
+  // Show building indicator when route is 'build', streaming, and no content yet
+  const showBuildingIndicator = message.route === 'build' && message.isStreaming && !displayContent;
 
   const canRevert = isUser && !!revertCode && !!onRevert;
 
@@ -42,17 +36,31 @@ export const ChatMessage = memo(function ChatMessage({ message, isLastAssistant,
               : 'bg-surface-2 text-ink-secondary rounded-tl-sm'
           )}
         >
-          {message.isStreaming ? (
+          {showBuildingIndicator ? (
+            <BuildingIndicator />
+          ) : message.isStreaming && !displayContent ? (
             <ThinkingDots />
           ) : (
             <>
               {displayContent || '…'}
-              {isLastAssistant && writingCode && (
+              {isLastAssistant && message.isStreaming && (
                 <span className="inline-block w-0.5 h-3.5 bg-white/40 ml-0.5 align-middle animate-pulse" />
               )}
             </>
           )}
         </div>
+
+        {/* Question card */}
+        {message.questions && !message.selectedAnswer && onQuestionAnswer && (
+          <QuestionCard
+            questions={message.questions}
+            onAnswer={onQuestionAnswer}
+            disabled={message.isStreaming}
+          />
+        )}
+        {message.selectedAnswer && (
+          <p className="text-xs text-ink-muted mt-1 px-3">You chose: {message.selectedAnswer}</p>
+        )}
 
         {canRevert && (
           <button
@@ -79,6 +87,24 @@ function ThinkingDots() {
           style={{ animationDelay: `${i * 150}ms`, animationDuration: '900ms' }}
         />
       ))}
+    </span>
+  );
+}
+
+function BuildingIndicator() {
+  return (
+    <span className="inline-flex items-center gap-2 text-ink-muted">
+      <Code2 size={13} className="animate-pulse" />
+      <span className="text-xs">Building...</span>
+      <span className="inline-flex items-center gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="w-1 h-1 rounded-full bg-violet-400/60 animate-bounce"
+            style={{ animationDelay: `${i * 150}ms`, animationDuration: '900ms' }}
+          />
+        ))}
+      </span>
     </span>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, MessageCircle, MapPin, CheckCheck, CornerDownRight } from 'lucide-react';
+import { X, Send, MessagesSquare, MapPin, CheckCheck, CornerDownRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -64,7 +64,7 @@ export function CommentsPanel({ branchId }: CommentsPanelProps) {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-line flex-shrink-0">
             <div className="flex items-center gap-2">
-              <MessageCircle size={13} className="text-ink-muted" />
+              <MessagesSquare size={13} className="text-ink-muted" />
               <span className="text-sm font-semibold text-ink-primary">Comments</span>
               {open.length > 0 && (
                 <span className="text-xs text-ink-muted/60">{open.length} open</span>
@@ -97,7 +97,7 @@ export function CommentsPanel({ branchId }: CommentsPanelProps) {
           <div className="flex-1 overflow-y-auto py-2">
             {visible.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-muted px-4 text-center">
-                <MessageCircle size={24} className="opacity-30" />
+                <MessagesSquare size={24} className="opacity-30" />
                 <p className="text-sm">No comments yet.</p>
                 <p className="text-xs opacity-60">Use the comment tool on the preview to pin feedback directly on the design.</p>
               </div>

@@ -14,7 +14,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ branchId }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { threads, isStreaming, clearThread } = useChatStore();
+  const { threads, isStreaming, clearThread, setSelectedAnswer } = useChatStore();
   const { sendMessage, abort } = useChatStream(branchId);
   const { getBranchById, updateBranch } = useProjectStore();
 
@@ -37,6 +37,14 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
       });
     },
     [branchId, getBranchById, updateBranch]
+  );
+
+  const handleQuestionAnswer = useCallback(
+    (msgId: string, answer: string) => {
+      setSelectedAnswer(branchId, msgId, answer);
+      sendMessage(answer);
+    },
+    [branchId, sendMessage, setSelectedAnswer]
   );
 
   const messages = threads[branchId] ?? [];
@@ -66,6 +74,7 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
                 isLastAssistant={msg.id === lastAssistantId}
                 onRevert={handleRevert}
                 revertCode={revertCode}
+                onQuestionAnswer={(answer) => handleQuestionAnswer(msg.id, answer)}
               />
             );
           })

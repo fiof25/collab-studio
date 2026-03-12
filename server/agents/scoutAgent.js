@@ -1,7 +1,6 @@
 import { callClaude, readFile } from './tools.js';
 import { writeMemory, clearMemory } from './memory.js';
-
-const MODEL = 'claude-haiku-4-5-20251001';
+import { config } from '../config/models.js';
 
 const SYSTEM_PROMPT = `You are a Scout Agent for a collaborative prototyping tool called Collab Studio.
 
@@ -93,7 +92,7 @@ ${targetHtml.slice(0, 8000)}
 
 Analyze the codebases and produce the merge plan JSON now.`;
 
-    const raw = await callClaude(apiKey, MODEL, {
+    const raw = await callClaude(apiKey, config.models.small, {
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
     }, { temperature: 0.2, maxOutputTokens: 2048 });

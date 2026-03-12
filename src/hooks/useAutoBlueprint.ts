@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useProjectStore } from '@/store/useProjectStore';
 import type { ProjectFile } from '@/types/branch';
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = '';
 
 /**
  * Auto-generates/regenerates blueprints whenever a branch's latest checkpoint changes.
@@ -42,6 +42,8 @@ export function useAutoBlueprint() {
     });
 
     toGenerate.forEach((branch, i) => {
+      // Stagger requests: 2 calls per branch (generate + snapshot), rate limit is 10/min.
+      // Use 2s intervals to stay well under the limit.
       setTimeout(async () => {
         const ckpt = branch.checkpoints.at(-1);
         if (!ckpt) return;
@@ -56,34 +58,39 @@ export function useAutoBlueprint() {
         const parentBranch = branch.parentId ? getBranchById(branch.parentId) : undefined;
 
         try {
-          const [bpRes, snapRes] = await Promise.allSettled([
-            fetch(`${SERVER_URL}/api/blueprint/generate`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                branchId: branch.id,
-                branchName: branch.name,
-                parentBranchName: parentBranch?.name,
-                files,
-              }),
-            }).then((r) => r.json()),
-            fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ branchId: branch.id, branchName: branch.name, files }),
-            }).then((r) => r.json()),
-          ]);
+          // Run sequentially to avoid burst rate-limiting
+          const bpRes = await fetch(`${SERVER_URL}/api/blueprint/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              branchId: branch.id,
+              branchName: branch.name,
+              parentBranchName: parentBranch?.name,
+              files,
+            }),
+          });
 
-          if (bpRes.status === 'fulfilled' && bpRes.value?.success) {
-            updateBlueprint(branch.id, bpRes.value.blueprint);
+          if (bpRes.ok) {
+            const bpData = await bpRes.json();
+            if (bpData?.success) updateBlueprint(branch.id, bpData.blueprint);
           }
-          if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description && !branch.descriptionPinned) {
-            updateBranch(branch.id, { description: snapRes.value.description });
+
+          const snapRes = await fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ branchId: branch.id, branchName: branch.name, files }),
+          });
+
+          if (snapRes.ok) {
+            const snapData = await snapRes.json();
+            if (snapData?.success && snapData.description && !branch.descriptionPinned) {
+              updateBranch(branch.id, { description: snapData.description });
+            }
           }
         } catch {
           // Server not running — silently skip
         }
-      }, i * 600);
+      }, i * 2000);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fingerprint]);

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { ArrowUp, Square, Sparkles, X, Trash2 } from 'lucide-react';
+import { ArrowUp, Square, Sparkles, X, Trash2, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAIConfig } from '@/hooks/useAIConfig';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, tier: 'large' | 'small') => void;
   onStop: () => void;
   isStreaming: boolean;
   disabled?: boolean;
@@ -11,18 +12,37 @@ interface ChatInputProps {
 }
 
 const SUGGESTIONS = [
-  'Build me a SaaS landing page',
-  'Add an animated hero with gradient',
-  'Add a dark mode toggle',
-  'Create an interactive pricing table',
-  'Add smooth scroll navigation',
-  'Build a testimonials carousel',
+  'Make a recipe app',
+  'Create an interactive game',
+  'Design a dashboard',
+  'Build a portfolio site',
 ];
+
+/** Shorten model IDs for display: "claude-sonnet-4-6" → "Sonnet 4.6" */
+function formatModelName(model: string, provider: string): string {
+  if (provider === 'claude') {
+    const m = model.match(/claude-(\w+)-(\d+)-(\d+)/);
+    if (m) return `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]}`;
+  }
+  if (provider === 'gemini') {
+    // "gemini-2.0-flash" → "Flash 2.0", "gemini-2.0-flash-lite" → "Flash Lite 2.0"
+    const m = model.match(/gemini-([\d.]+)-(.+)/);
+    if (m) {
+      const variant = m[2].split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+      return `${variant} ${m[1]}`;
+    }
+  }
+  return model;
+}
 
 export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<'large' | 'small'>('large');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const config = useAIConfig();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -30,6 +50,18 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [value]);
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showModelPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowModelPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showModelPicker]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -42,16 +74,18 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
     if (isStreaming) return;
     const trimmed = value.trim();
     if (!trimmed) return;
-    onSend(trimmed);
+    onSend(trimmed, selectedTier);
     setValue('');
   };
 
   const handleSuggestion = (text: string) => {
     if (isStreaming) return;
-    onSend(text);
+    onSend(text, selectedTier);
   };
 
   const showChips = !value && !isStreaming && showSuggestions;
+  const activeModel = config.models[selectedTier];
+  const displayName = formatModelName(activeModel, config.provider);
 
   return (
     <div className="p-3 border-t border-line bg-surface-1">
@@ -112,10 +146,45 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
               <Trash2 size={12} />
             </button>
           )}
-          <span className="flex items-center gap-1 text-[10px] text-ink-muted/50 ml-1">
-            <Sparkles size={9} />
-            gemini-2.5-flash
-          </span>
+
+          {/* Model selector */}
+          <div className="relative ml-1" ref={pickerRef}>
+            <button
+              onClick={() => setShowModelPicker(!showModelPicker)}
+              className="flex items-center gap-1 text-[10px] text-ink-muted/50 hover:text-ink-muted transition-colors"
+            >
+              <Sparkles size={9} />
+              {displayName}
+              <ChevronDown size={9} />
+            </button>
+
+            {showModelPicker && (
+              <div className="absolute bottom-full left-0 mb-1 w-44 rounded-lg border border-line bg-surface-2 shadow-xl py-1 z-50">
+                {(['large', 'small'] as const).map((tier) => {
+                  const model = config.models[tier];
+                  const label = tier === 'large' ? 'Large' : 'Small';
+                  const isActive = selectedTier === tier;
+                  return (
+                    <button
+                      key={tier}
+                      onClick={() => { setSelectedTier(tier); setShowModelPicker(false); }}
+                      className={clsx(
+                        'w-full px-3 py-1.5 text-left text-xs flex items-center justify-between transition-colors',
+                        isActive ? 'text-ink-primary bg-surface-3' : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-3/50'
+                      )}
+                    >
+                      <span>
+                        <span className="font-medium">{label}</span>
+                        <span className="ml-1.5 text-ink-muted/60">{formatModelName(model, config.provider)}</span>
+                      </span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex-1" />
 
           {isStreaming ? (

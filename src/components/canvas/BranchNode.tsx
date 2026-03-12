@@ -107,6 +107,7 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
 
   const scale = NODE_W / 800;
   const iframeH = Math.ceil(PREVIEW_H / scale);
+  const scrollY = data.previewScrollY ?? 0;
 
   return (
     <>
@@ -150,7 +151,8 @@ export const BranchNode = memo(function BranchNode(props: NodeProps) {
                 sandbox="allow-scripts"
                 style={{
                   width: 800,
-                  height: iframeH,
+                  height: iframeH + scrollY,
+                  marginTop: -scrollY * scale,
                   transform: `scale(${scale})`,
                   transformOrigin: 'top left',
                   pointerEvents: 'none',

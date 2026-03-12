@@ -23,6 +23,7 @@ export function useBranchTree(): {
         status: branch.status,
         color: branch.color,
         codeSnapshot: branch.checkpoints[branch.checkpoints.length - 1]?.codeSnapshot ?? '',
+        previewScrollY: branch.previewScrollY,
         collaborators: branch.collaborators,
         checkpointCount: branch.checkpoints.length,
         commentCount: branch.comments.filter((c) => !c.resolved).length,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
-import type { ChatMessage } from '@/types/chat';
+import type { ChatMessage, Question } from '@/types/chat';
 
 interface ChatStore {
   threads: Record<string, ChatMessage[]>;
@@ -12,6 +12,9 @@ interface ChatStore {
   setStreaming: (v: boolean) => void;
   clearThread: (branchId: string) => void;
   getThread: (branchId: string) => ChatMessage[];
+  setQuestions: (branchId: string, msgId: string, questions: Question[]) => void;
+  setRoute: (branchId: string, msgId: string, route: string) => void;
+  setSelectedAnswer: (branchId: string, msgId: string, answer: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -82,4 +85,37 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   getThread: (branchId) => get().threads[branchId] ?? [],
+
+  setQuestions: (branchId, msgId, questions) => {
+    set((s) => ({
+      threads: {
+        ...s.threads,
+        [branchId]: (s.threads[branchId] ?? []).map((m) =>
+          m.id === msgId ? { ...m, questions } : m
+        ),
+      },
+    }));
+  },
+
+  setRoute: (branchId, msgId, route) => {
+    set((s) => ({
+      threads: {
+        ...s.threads,
+        [branchId]: (s.threads[branchId] ?? []).map((m) =>
+          m.id === msgId ? { ...m, route: route as ChatMessage['route'] } : m
+        ),
+      },
+    }));
+  },
+
+  setSelectedAnswer: (branchId, msgId, answer) => {
+    set((s) => ({
+      threads: {
+        ...s.threads,
+        [branchId]: (s.threads[branchId] ?? []).map((m) =>
+          m.id === msgId ? { ...m, selectedAnswer: answer } : m
+        ),
+      },
+    }));
+  },
 }));

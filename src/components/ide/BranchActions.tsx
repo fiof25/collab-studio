@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, MessageCircle, Trash2 } from 'lucide-react';
+import { Plus, MessagesSquare, Trash2 } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { nanoid } from 'nanoid';
@@ -56,10 +56,10 @@ export function BranchActions({ branchId }: BranchActionsProps) {
     <div className="flex items-center gap-2">
       <button
         onClick={handleComments}
-        title="Comments"
+        title="Discussion"
         className="flex items-center justify-center w-8 h-8 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-2 transition-colors"
       >
-        <MessageCircle size={15} />
+        <MessagesSquare size={15} />
       </button>
 
       <div className="w-px h-4 bg-line mx-1" />

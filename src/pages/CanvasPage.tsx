@@ -1,4 +1,4 @@
-import { MessageCircle, Plus } from 'lucide-react';
+import { MessagesSquare, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TopNav } from '@/components/shared/TopNav';
 import { ProjectCanvas } from '@/components/canvas/ProjectCanvas';
@@ -31,14 +31,14 @@ export function CanvasPage() {
             {/* Global comments button */}
             <button
               onClick={toggleGlobalCommentsPanel}
-              title="All comments"
+              title="Discussion threads"
               className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors ${
                 globalCommentsPanelOpen
                   ? 'bg-accent-violet text-white'
                   : 'text-ink-muted hover:text-ink-primary hover:bg-surface-2'
               }`}
             >
-              <MessageCircle size={17} />
+              <MessagesSquare size={17} />
               {openCommentCount > 0 && !globalCommentsPanelOpen && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-accent-violet text-white text-[8px] font-bold flex items-center justify-center leading-none">
                   {openCommentCount > 9 ? '9+' : openCommentCount}

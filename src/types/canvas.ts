@@ -8,6 +8,7 @@ export interface BranchNodeData extends Record<string, unknown> {
   status: BranchStatus;
   color: string;
   codeSnapshot: string;
+  previewScrollY?: number;
   collaborators: Collaborator[];
   checkpointCount: number;
   commentCount: number;

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, GitBranch } from 'lucide-react';
+import { X, MessagesSquare, GitBranch } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { formatRelativeTime } from '@/utils/dateUtils';
@@ -63,7 +63,7 @@ export function GlobalCommentsPanel() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-line flex-shrink-0">
             <div className="flex items-center gap-2">
-              <MessageCircle size={13} className="text-ink-muted" />
+              <MessagesSquare size={13} className="text-ink-muted" />
               <span className="text-sm font-semibold text-ink-primary">All Comments</span>
               {allComments.length > 0 && (
                 <span className="text-xs text-ink-muted/60">{allComments.length} open</span>
@@ -81,7 +81,7 @@ export function GlobalCommentsPanel() {
           <div className="flex-1 overflow-y-auto">
             {sections.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-muted px-4 text-center">
-                <MessageCircle size={24} className="opacity-30" />
+                <MessagesSquare size={24} className="opacity-30" />
                 <p className="text-sm">No open comments.</p>
               </div>
             ) : (

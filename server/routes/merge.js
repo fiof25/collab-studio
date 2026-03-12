@@ -1,6 +1,7 @@
 import express from 'express';
 import { runScoutAgent } from '../agents/scoutAgent.js';
 import { runMergeAgent } from '../agents/mergeAgent.js';
+import { config } from '../config/models.js';
 
 export const mergeRouter = express.Router();
 
@@ -38,7 +39,7 @@ function mockPlan(featureCount) {
 // Returns: { prompts: string[] }
 mergeRouter.post('/prompts', async (req, res) => {
   const { baseName, contributorName, baseBlueprint, contributorBlueprint, baseHtml, contributorHtml } = req.body;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = config.apiKey;
 
   if (!apiKey || apiKey === 'your_key_here') {
     return res.json({ prompts: [
@@ -79,7 +80,7 @@ Respond with ONLY a JSON array of 6 strings. No markdown, no explanation.`;
 
   try {
     const { callClaude } = await import('../agents/tools.js');
-    const raw = await callClaude(apiKey, 'claude-haiku-4-5-20251001', {
+    const raw = await callClaude(apiKey, config.models.small, {
       messages: [{ role: 'user', content: userMessage }],
     }, { temperature: 0.7, maxOutputTokens: 512 });
 
@@ -109,7 +110,7 @@ mergeRouter.post('/start', async (req, res) => {
 
   sseSetup(res);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = config.apiKey;
   if (!apiKey || apiKey === 'your_key_here') {
     sseWrite(res, { type: 'plan', ...mockPlan((selectedFeatureIds ?? []).length) });
     res.end();
@@ -154,7 +155,7 @@ mergeRouter.post('/execute', async (req, res) => {
   sseSetup(res);
 
   const emit = (data) => sseWrite(res, data);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = config.apiKey;
 
   if (!apiKey || apiKey === 'your_key_here') {
     // Mock mode: return target code unchanged
