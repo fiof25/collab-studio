@@ -425,7 +425,7 @@ export function MergeWorkspace() {
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-5">
                 <FourPointStar size={48} className="text-ink-muted" />
-                <p className="text-sm text-ink-secondary leading-relaxed">
+                <p className="text-base text-ink-secondary leading-relaxed">
                   What should the merge keep from each version?
                 </p>
               </div>
@@ -487,8 +487,8 @@ export function MergeWorkspace() {
             <div className="px-3 py-3 border-t border-line">
               {promptsLoading ? (
                 <div className="flex items-center gap-1.5">
-                  <Loader2 size={11} className="animate-spin text-ink-muted" />
-                  <span className="text-xs text-ink-muted">Loading suggestions…</span>
+                  <Loader2 size={12} className="animate-spin text-ink-muted" />
+                  <span className="text-sm text-ink-muted">Loading suggestions…</span>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -496,7 +496,7 @@ export function MergeWorkspace() {
                     <button
                       key={i}
                       onClick={() => addMessage('user', p)}
-                      className="px-3 py-1.5 rounded-full border border-line bg-surface-3 hover:bg-surface-4 text-xs text-ink-secondary hover:text-ink-primary transition-colors text-left leading-snug"
+                      className="px-3 py-2 rounded-xl border border-line bg-surface-3 hover:bg-surface-4 text-sm text-ink-secondary hover:text-ink-primary transition-colors text-left leading-snug"
                     >
                       {p}
                     </button>
@@ -515,7 +515,7 @@ export function MergeWorkspace() {
               {/* Selected element context card */}
               {selectedElement && (
                 <div className="flex items-center gap-2 px-3 pt-2.5 pb-1">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 text-xs text-violet-300 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-sm text-violet-300 min-w-0 flex-1">
                     <span className="font-mono font-medium flex-shrink-0">&lt;{selectedElement.tag}&gt;</span>
                     <span className="text-violet-400/60 flex-shrink-0">from</span>
                     <span className="font-medium flex-shrink-0">{selectedElement.branchName}</span>
@@ -599,14 +599,14 @@ export function MergeWorkspace() {
             {peekBranch && (
               <button
                 onClick={() => setActiveVersion((v) => (v === 'left' ? 'right' : 'left'))}
-                className="absolute z-10 overflow-hidden shadow-2xl transition-all group"
-                style={{ right: '2%', top: '5%', width: '32%', height: '30%' }}
+                className="absolute z-10 overflow-hidden shadow-2xl transition-all group border"
+                style={{ right: '2%', top: '5%', width: '32%', height: '30%', borderColor: 'rgba(186,186,228,0.25)' }}
               >
                 {peekCode ? (
                   <>
                     <ScaledIframe srcDoc={peekCode} title="peek-preview" />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-center pt-4">
-                      <span className="text-white text-sm font-semibold bg-violet-500 px-5 py-2 rounded-full shadow-lg">
+                      <span className="text-white text-xs font-semibold bg-violet-500 px-3 py-1 rounded-full shadow-lg">
                         Switch to {toDisplayName(peekBranch.name)}
                       </span>
                     </div>
@@ -620,22 +620,22 @@ export function MergeWorkspace() {
             {/* Version label + base button — above the main preview */}
             <div
               className="absolute z-20 flex items-center gap-4"
-              style={{ left: '4%', top: '6%' }}
+              style={{ left: '4%', top: '5%' }}
             >
-              <span className="text-xl font-semibold" style={{ color: '#BABAE4' }}>
+              <span className="text-lg font-semibold" style={{ color: '#BABAE4' }}>
                 {toDisplayName(activeBranch?.name ?? '')}
               </span>
               {baseId === activeBranch?.id ? (
                 <button
                   onClick={() => setBaseId(peekBranch?.id ?? '')}
-                  className="inline-flex items-center px-5 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center px-4 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors"
                 >
                   Selected as Base
                 </button>
               ) : (
                 <button
                   onClick={() => setBaseId(activeBranch?.id ?? '')}
-                  className="inline-flex items-center px-5 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center px-4 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors"
                 >
                   Selected as Contributor
                 </button>
@@ -652,8 +652,8 @@ export function MergeWorkspace() {
                 transition={{ duration: 0.22, ease: 'easeInOut' }}
                 className="absolute z-20 overflow-hidden border shadow-2xl transition-colors"
                 style={{
-                  left: '4%', top: '15%', right: '6%', bottom: '6%',
-                  borderColor: isSelectMode ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.1)',
+                  left: '4%', top: '12%', right: '6%', bottom: '4%',
+                  borderColor: isSelectMode ? 'rgba(124,58,237,0.6)' : 'rgba(186,186,228,0.25)',
                 }}
               >
                 {activeCode ? (

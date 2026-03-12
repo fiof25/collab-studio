@@ -42,10 +42,10 @@ mergeRouter.post('/prompts', async (req, res) => {
 
   if (!apiKey || apiKey === 'your_key_here') {
     return res.json({ prompts: [
-      `Keep ${baseName}'s layout, adopt ${contributorName}'s styling.`,
-      `Use ${contributorName}'s color scheme on ${baseName}'s structure.`,
-      `Merge navigation from ${baseName} with content from ${contributorName}.`,
-      `Use ${baseName} as the base, bring in ${contributorName}'s visual updates.`,
+      `Keep ${baseName}'s layout, use ${contributorName}'s look and feel.`,
+      `Apply ${contributorName}'s color scheme to ${baseName}'s sections.`,
+      `Keep ${baseName}'s navigation, use ${contributorName}'s content areas.`,
+      `Use ${baseName} as the base, bring in ${contributorName}'s visual style.`,
     ]});
   }
 
@@ -62,17 +62,19 @@ CONTRIBUTOR ("${contributorName}"):
 - ${contribFeatures}
 ${contributorHtml ? `HTML:\n${contributorHtml.slice(0, 2000)}` : ''}
 
-Generate exactly 4 short, specific merge suggestions. Rules:
-- Max 8 words each
+Generate exactly 4 short, specific merge suggestions written in plain designer language. Rules:
+- Max 10 words each
 - Start with an action verb (Keep, Use, Apply, Replace, Add, Swap)
-- Reference ONE concrete visual element per suggestion (e.g. a specific color, component, or section visible in the HTML)
+- Describe visual elements by what they look like, not their technical implementation
 - Cover different aspects: layout, color/style, typography, components
+- NEVER use: hex codes, CSS property names, class names, file names, px/rem values, or any developer jargon
 - No vague phrases ("best of both", "combine the two")
 
 Good examples:
-- "Keep ${baseName}'s nav, use ${contributorName}'s hero"
-- "Apply ${contributorName}'s dark background to ${baseName}"
-- "Use ${contributorName}'s card grid, keep ${baseName}'s typography"
+- "Keep ${baseName}'s nav, use ${contributorName}'s hero section"
+- "Apply ${contributorName}'s dark color scheme to ${baseName}"
+- "Use ${contributorName}'s card grid layout, keep ${baseName}'s typography"
+- "Replace ${baseName}'s light background with ${contributorName}'s dark theme"
 
 Respond with ONLY a JSON array of 4 strings. No markdown, no explanation.`;
 

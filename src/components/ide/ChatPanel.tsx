@@ -87,8 +87,8 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
 function EmptyState({ branchName }: { branchName?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-      <FourPointStar size={28} className="text-ink-muted" />
-      <p className="text-sm font-medium text-ink-secondary leading-snug max-w-[260px]">
+      <FourPointStar size={48} className="text-ink-muted" />
+      <p className="text-base text-ink-secondary leading-relaxed">
         Start chatting with AI
       </p>
     </div>
