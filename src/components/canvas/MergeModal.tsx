@@ -243,6 +243,7 @@ export function MergeModal({ variant }: MergeModalProps) {
         answers: questionAnswers,
         selectedFeatureIds: Array.from(selectedFeatureIds),
         sourceBlueprint: contributorBranch.blueprint ?? null,
+        targetBlueprint: baseBranch.blueprint ?? null,
       },
       (event) => {
         if (event.type === 'progress') addProgress(event.message);
@@ -344,6 +345,7 @@ export function MergeModal({ variant }: MergeModalProps) {
         answers: {},
         selectedFeatureIds: Array.from(selectedFeatureIds),
         sourceBlueprint: contributorBranch.blueprint ?? null,
+        targetBlueprint: baseBranch.blueprint ?? null,
         instructions: mergeInstructions || undefined,
       },
       (event) => {

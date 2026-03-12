@@ -51,6 +51,7 @@ describe('useMergeStream', () => {
     answers: {},
     selectedFeatureIds: [],
     sourceBlueprint: null,
+    targetBlueprint: null,
   };
 
   describe('startScout', () => {
