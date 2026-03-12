@@ -1,28 +1,28 @@
-import { callClaude, readFile } from './tools.js';
+import { callClaude, readFile, formatBlueprintBriefing, formatFeatureBriefing, detectStateConflicts } from './tools.js';
 import { writeMemory, clearMemory } from './memory.js';
 import { config } from '../config/models.js';
 
 const SYSTEM_PROMPT = `You are a Scout Agent for a collaborative prototyping tool called Collab Studio.
 
-Your job: analyze a SOURCE HTML prototype and a TARGET HTML prototype, identify what the user wants to migrate, and produce a merge plan with any necessary clarification questions.
+Your job: analyze a SOURCE and TARGET prototype, compare their architectures and features, and produce a merge plan that accounts for structural differences.
 
 You receive:
-- Source BLUEPRINT (structured analysis of the source prototype, may be null)
-- Target BLUEPRINT (structured analysis of the target prototype, may be null)
-- Selected feature IDs/names the user wants to bring from source into target
-- Source HTML code
-- Target HTML code
+- Source and Target architecture briefings (pattern, init flow, state, events)
+- Selected features to migrate (with their behavior, entry points, and code anchors)
+- State conflicts (overlapping variable names with different types/scopes)
+- Integration points (source entry points that need wiring to target)
+- Source and Target HTML code
 
 Respond with ONLY valid JSON. No markdown fences, no explanation.
 
 JSON structure:
 {
-  "summary": "1-2 sentences describing what will be merged and how",
+  "summary": "1-2 sentences describing what will be merged and key architectural considerations",
   "plan": [
     {
       "action": "modify",
       "file": "index.html",
-      "description": "Specific description of what will change in this file"
+      "description": "Specific, actionable description of what will change"
     }
   ],
   "questions": [
@@ -34,24 +34,22 @@ JSON structure:
   ]
 }
 
-Rules for plan steps:
-- For single-file HTML projects, the plan usually has 1-3 steps
-- Be specific and actionable (e.g. "Integrate the hero section from source, preserving target's nav" not "merge files")
-- Always include "index.html" as the file path for single-file projects
-- Order steps logically
+Rules for the merge plan:
+- If source and target have DIFFERENT architecture patterns (e.g. game loop vs form-driven), include a plan step for how to reconcile initialization
+- If selected features have entry points with direction "out" that need wiring to the target, include a plan step for connecting them
+- If state conflicts exist, include a plan step for resolving each conflict
+- Check feature dependencies: if feature A depends on feature B and B is not selected, include a warning in the summary
+- Be specific about WHERE in the target code each feature should be integrated (reference code anchors when available)
+- Order steps logically: structural changes first, then feature integration, then wiring
 
 Rules for conflict questions:
-- ONLY ask when there is a genuine ambiguity a human must resolve (font clash, CSS methodology difference, color scheme conflict)
+- ONLY ask when there is a genuine ambiguity a human must resolve
 - Maximum 3 questions total
-- Always provide 2-4 options — multiple choice whenever possible
-- DO NOT ask about things with obvious defaults (e.g. don't ask "should I keep the doctype?")
-- If no genuine conflicts exist, return an empty questions array
-
-Examples of genuine conflicts worth asking about:
-- Source uses Inter font, target uses Poppins throughout
-- Source uses Tailwind, target uses inline CSS
-- Both have a Button component with different styles
-- Color palette is fundamentally different`;
+- Always provide 2-4 options
+- Ask about architecture pattern conflicts (e.g. "Source uses requestAnimationFrame loop, target uses event-driven. Keep both patterns or convert source features to event-driven?")
+- Ask about state conflicts
+- Ask about styling conflicts (font, color, CSS methodology)
+- DO NOT ask about things with obvious defaults`;
 
 export async function runScoutAgent({
   sourceFiles,
@@ -67,7 +65,7 @@ export async function runScoutAgent({
     const sourceHtml = readFile(sourceFiles, 'index.html') ?? sourceFiles[0]?.content ?? '';
     const targetHtml = readFile(targetFiles, 'index.html') ?? targetFiles[0]?.content ?? '';
 
-    // Resolve selected feature names from blueprint
+    // Resolve selected features from blueprint
     const sourceFeatures = sourceBlueprint?.features ?? [];
     const selectedFeatures = selectedFeatureIds.length > 0
       ? sourceFeatures.filter((f) => selectedFeatureIds.includes(f.id))
@@ -76,13 +74,39 @@ export async function runScoutAgent({
 
     writeMemory(agentId, 'selected_features', featureNames);
 
-    const userMessage = `SOURCE BLUEPRINT:
-${sourceBlueprint ? JSON.stringify(sourceBlueprint, null, 2) : 'Not available'}
+    // Build structured briefing instead of raw JSON dump
+    const sourceBriefing = formatBlueprintBriefing(sourceBlueprint, 'SOURCE ARCHITECTURE');
+    const targetBriefing = formatBlueprintBriefing(targetBlueprint, 'TARGET ARCHITECTURE');
+    const featureBriefing = formatFeatureBriefing(selectedFeatures);
+    const stateConflicts = detectStateConflicts(sourceBlueprint, targetBlueprint);
 
-TARGET BLUEPRINT:
-${targetBlueprint ? JSON.stringify(targetBlueprint, null, 2) : 'Not available'}
+    // Detect integration points: source features with "out" entry points
+    const integrationPoints = selectedFeatures
+      .flatMap((f) => (f.entryPoints ?? [])
+        .filter((ep) => ep.direction === 'out' || ep.direction === 'both')
+        .map((ep) => `${f.name}: ${ep.name} [${ep.direction}] — ${ep.description}`)
+      );
 
-SELECTED FEATURES TO MIGRATE FROM SOURCE TO TARGET: ${featureNames}
+    // Check dependency warnings
+    const selectedIds = new Set(selectedFeatureIds);
+    const depWarnings = selectedFeatures
+      .flatMap((f) => (f.dependencies ?? [])
+        .filter((depId) => !selectedIds.has(depId))
+        .map((depId) => `${f.name} depends on "${depId}" which is NOT selected`)
+      );
+
+    const userMessage = `${sourceBriefing}
+
+${targetBriefing}
+
+SELECTED FEATURES TO MIGRATE:
+${featureBriefing}
+
+${stateConflicts.length > 0 ? `STATE CONFLICTS:\n${stateConflicts.map((c) => `- "${c.name}": source=${c.source}, target=${c.target}`).join('\n')}` : 'STATE CONFLICTS: None'}
+
+${integrationPoints.length > 0 ? `INTEGRATION POINTS (source outputs needing wiring):\n${integrationPoints.map((p) => `- ${p}`).join('\n')}` : 'INTEGRATION POINTS: None'}
+
+${depWarnings.length > 0 ? `DEPENDENCY WARNINGS:\n${depWarnings.map((w) => `- ⚠ ${w}`).join('\n')}` : ''}
 
 SOURCE HTML (${sourceFiles[0]?.path ?? 'index.html'}):
 ${sourceHtml.slice(0, 8000)}
