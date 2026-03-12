@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Sparkles } from 'lucide-react';
+import { FourPointStar } from '@/components/shared/FourPointStar';
 import { nanoid } from 'nanoid';
 import { useChatStore } from '@/store/useChatStore';
 import { useChatStream } from '@/hooks/useChatStream';
@@ -87,7 +87,7 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
 function EmptyState({ branchName }: { branchName?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-      <Sparkles size={28} className="text-ink-muted" />
+      <FourPointStar size={28} className="text-ink-muted" />
       <p className="text-sm font-medium text-ink-secondary leading-snug max-w-[260px]">
         Start chatting with AI
       </p>

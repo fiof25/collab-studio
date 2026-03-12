@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Merge, Loader2, Sparkles, ArrowUp } from 'lucide-react';
+import { ArrowLeft, Merge, Loader2, ArrowUp, Pencil } from 'lucide-react';
+import { FourPointStar } from '@/components/shared/FourPointStar';
 import { clsx } from 'clsx';
 import { nanoid } from 'nanoid';
 import { useUIStore } from '@/store/useUIStore';
@@ -30,14 +32,14 @@ function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400 }:
     return () => ro.disconnect();
   }, [renderWidth]);
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-white">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-surface-0">
       <iframe
         srcDoc={srcDoc}
         title={title}
         className="absolute top-0 left-0 border-none"
         style={{
           width: `${renderWidth}px`,
-          height: `${Math.round(100 / scale)}%`,
+          height: `${Math.ceil(100 / scale) + 2}%`,
           transformOrigin: 'top left',
           transform: `scale(${scale})`,
           pointerEvents: scrollable ? 'auto' : 'none',
@@ -48,13 +50,6 @@ function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400 }:
   );
 }
 
-function getSemanticArea(yPercent: number): string {
-  if (yPercent < 12) return 'the navigation bar';
-  if (yPercent < 35) return 'the hero section';
-  if (yPercent < 58) return 'the features section';
-  if (yPercent < 78) return 'the content section';
-  return 'the footer';
-}
 
 function getFiles(branch: Branch): ProjectFile[] {
   return (
@@ -80,7 +75,6 @@ export function MergeWorkspace() {
   const navigate = useNavigate();
   const { activeModal, closeModal, modalContext } = useUIStore();
   const { project, createBranch, updateBranch, updateBlueprint } = useProjectStore();
-  const pushToast = useUIStore((s) => s.pushToast);
   const { executeMerge } = useMergeStream();
 
   const open = activeModal === 'merge';
@@ -172,13 +166,6 @@ export function MergeWorkspace() {
     setInputValue('');
   };
 
-  const handleClickOverlay = (e: React.MouseEvent<HTMLDivElement>, branchName: string) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-    const area = getSemanticArea(yPercent);
-    setInputValue((prev) => (prev ? `${prev} [${area} of "${branchName}"] ` : `[${area} of "${branchName}"] `));
-    inputRef.current?.focus();
-  };
 
   const handleMerge = async () => {
     if (!leftBranch || !rightBranch || merging) return;
@@ -273,20 +260,20 @@ export function MergeWorkspace() {
       <div className="flex items-center gap-3 px-6 h-16 border-b border-line flex-shrink-0 bg-surface-1">
         <button
           onClick={closeModal}
-          className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink-primary transition-colors"
+          className="flex items-center gap-2 text-base text-ink-muted hover:text-ink-primary transition-colors"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={17} />
           <span>Back</span>
         </button>
 
-        <span className="flex-1 text-center text-sm font-medium text-ink-muted">Merge Mode</span>
+        <div className="flex-1" />
 
-        <button
+<button
           onClick={handleMerge}
           disabled={!leftBranch || !rightBranch || merging || !!createdBranchId}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-white text-surface-0 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg bg-white text-surface-0 text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0"
         >
-          {merging ? <Loader2 size={12} className="animate-spin" /> : <Merge size={12} />}
+          {merging ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
           {merging ? 'Merging…' : createdBranchId ? 'Merged ✓' : 'Merge'}
         </button>
 
@@ -310,9 +297,7 @@ export function MergeWorkspace() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-5">
-                <div className="w-10 h-10 rounded-full bg-surface-3 flex items-center justify-center">
-                  <Sparkles size={18} className="text-ink-muted" />
-                </div>
+                <FourPointStar size={48} className="text-ink-muted" />
                 <p className="text-sm text-ink-secondary leading-relaxed">
                   What should the merge keep from each version?
                 </p>
@@ -322,13 +307,25 @@ export function MergeWorkspace() {
                 <div
                   key={msg.id}
                   className={clsx(
-                    'text-sm leading-relaxed',
+                    'text-sm leading-relaxed group/msg relative',
                     msg.role === 'user'
-                      ? 'text-ink-primary bg-surface-2 rounded-xl px-3 py-2'
+                      ? 'text-ink-primary bg-surface-2 rounded-xl px-3 py-2 pr-8'
                       : 'text-ink-secondary px-1 py-0.5'
                   )}
                 >
                   {msg.content}
+                  {msg.role === 'user' && (
+                    <button
+                      onClick={() => {
+                        setInputValue(msg.content);
+                        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+                        inputRef.current?.focus();
+                      }}
+                      className="absolute top-2 right-2 opacity-40 group-hover/msg:opacity-100 transition-opacity text-ink-secondary hover:text-ink-primary"
+                    >
+                      <Pencil size={11} />
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -344,12 +341,12 @@ export function MergeWorkspace() {
                   <span className="text-xs text-ink-muted">Loading suggestions…</span>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
                   {aiPrompts.slice(0, 4).map((p, i) => (
                     <button
                       key={i}
-                      onClick={() => setInputValue((prev) => (prev ? `${prev} ${p}` : p))}
-                      className="px-3 py-2 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-xs text-ink-secondary hover:text-ink-primary transition-colors text-left line-clamp-2 leading-snug"
+                      onClick={() => addMessage('user', p)}
+                      className="px-3 py-1.5 rounded-full border border-line bg-surface-3 hover:bg-surface-4 text-xs text-ink-secondary hover:text-ink-primary transition-colors text-left leading-snug"
                     >
                       {p}
                     </button>
@@ -376,7 +373,7 @@ export function MergeWorkspace() {
                   }
                 }}
                 placeholder="Describe what to merge…"
-                rows={2}
+                rows={5}
                 disabled={merging}
                 className="flex-1 resize-none bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none leading-snug disabled:opacity-50"
               />
@@ -417,22 +414,15 @@ export function MergeWorkspace() {
             {peekBranch && (
               <button
                 onClick={() => setActiveVersion((v) => (v === 'left' ? 'right' : 'left'))}
-                className="absolute z-10 overflow-hidden border border-white/10 hover:border-violet-400/40 shadow-2xl transition-all group"
-                style={{ right: '5%', top: '5%', width: '32%', height: '30%' }}
-                title={`Switch to ${activeVersion === 'left' ? 'Version 2' : 'Version 1'}`}
+                className="absolute z-10 overflow-hidden shadow-2xl transition-all group"
+                style={{ right: '2%', top: '5%', width: '32%', height: '30%' }}
               >
                 {peekCode ? (
                   <>
-                    <iframe
-                      srcDoc={peekCode}
-                      className="absolute top-0 left-0 border-none pointer-events-none bg-white"
-                      style={{ width: '1400px', height: '900px', transformOrigin: 'top left', transform: 'scale(0.293)' }}
-                      sandbox="allow-scripts"
-                      title="peek-preview"
-                    />
-                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/25 transition-colors flex items-end justify-start p-2.5">
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-[11px] font-semibold bg-black/60 px-2.5 py-1 rounded-full">
-                        Switch to {activeVersion === 'left' ? 'Version 2' : 'Version 1'}
+                    <ScaledIframe srcDoc={peekCode} title="peek-preview" />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-center pt-4">
+                      <span className="text-white text-sm font-semibold bg-violet-500 px-5 py-2 rounded-full shadow-lg">
+                        Switch to {toDisplayName(peekBranch.name)}
                       </span>
                     </div>
                   </>
@@ -448,35 +438,45 @@ export function MergeWorkspace() {
               style={{ left: '4%', top: '6%' }}
             >
               <span className="text-xl font-semibold" style={{ color: '#BABAE4' }}>
-                {activeVersion === 'left' ? 'Version 1' : 'Version 2'}
+                {toDisplayName(activeBranch?.name ?? '')}
               </span>
               {baseId === activeBranch?.id ? (
-                <span className="inline-flex items-center px-5 py-2 rounded-full bg-violet-500 text-white text-sm font-semibold">
+                <button
+                  onClick={() => setBaseId(peekBranch?.id ?? '')}
+                  className="inline-flex items-center px-5 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
+                >
                   Selected as Base
-                </span>
+                </button>
               ) : (
                 <button
                   onClick={() => setBaseId(activeBranch?.id ?? '')}
-                  className="inline-flex items-center px-5 py-2 rounded-full border border-white/20 text-sm text-ink-secondary hover:border-violet-400/50 hover:text-violet-300 transition-colors font-medium"
+                  className="inline-flex items-center px-5 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
                 >
-                  Select as Base
+                  Selected as Contributor
                 </button>
               )}
             </div>
 
             {/* Main preview */}
-            <div
-              className="absolute z-20 overflow-hidden border border-white/10 shadow-2xl"
-              style={{ left: '4%', top: '16%', right: '4%', bottom: '4%' }}
-            >
-              {activeCode ? (
-                <ScaledIframe srcDoc={activeCode} title="active-preview" scrollable renderWidth={1000} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-surface-2">
-                  <span className="text-xs text-ink-muted">No preview yet</span>
-                </div>
-              )}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeVersion}
+                initial={{ opacity: 0, scale: 0.97, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: -10 }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="absolute z-20 overflow-hidden border border-white/10 shadow-2xl"
+                style={{ left: '4%', top: '15%', right: '6%', bottom: '6%' }}
+              >
+                {activeCode ? (
+                  <ScaledIframe srcDoc={activeCode} title="active-preview" scrollable renderWidth={1000} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-surface-2">
+                    <span className="text-xs text-ink-muted">No preview yet</span>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
           </div>
         </div>

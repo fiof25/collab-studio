@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { ArrowUp, Square, Sparkles, X, Trash2 } from 'lucide-react';
+import { ArrowUp, Square, X, Trash2 } from 'lucide-react';
+import { FourPointStar } from '@/components/shared/FourPointStar';
 import { clsx } from 'clsx';
 
 interface ChatInputProps {
@@ -64,7 +65,6 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
         {/* Suggestion chips */}
         {showChips && (
           <div className="flex items-center gap-2 px-3 pt-3 pb-1">
-            <Sparkles size={13} className="text-ink-muted flex-shrink-0" />
             <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -113,7 +113,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
             </button>
           )}
           <span className="flex items-center gap-1 text-[10px] text-ink-muted/50 ml-1">
-            <Sparkles size={9} />
+            <FourPointStar size={9} />
             gemini-2.5-flash
           </span>
           <div className="flex-1" />
