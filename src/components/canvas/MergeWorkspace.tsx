@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Merge, Loader2, ArrowUp, Pencil } from 'lucide-react';
+import { ArrowLeft, Merge, Loader2, ArrowUp, Pencil, Crosshair, X } from 'lucide-react';
 import { FourPointStar } from '@/components/shared/FourPointStar';
 import { clsx } from 'clsx';
 import { nanoid } from 'nanoid';
@@ -17,8 +17,21 @@ interface LocalMessage {
   content: string;
 }
 
+interface SelectedElement {
+  tag: string;
+  text: string;
+  branchName: string;
+}
+
 /** Renders an iframe scaled to fill its container, using renderWidth as the virtual desktop width. */
-function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400 }: { srcDoc: string; title: string; scrollable?: boolean; renderWidth?: number }) {
+function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400, iframeRef, onScaleChange }: {
+  srcDoc: string;
+  title: string;
+  scrollable?: boolean;
+  renderWidth?: number;
+  iframeRef?: RefObject<HTMLIFrameElement>;
+  onScaleChange?: (scale: number) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   useEffect(() => {
@@ -26,14 +39,18 @@ function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400 }:
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
       const w = entry.contentRect.width;
-      if (w > 0) setScale(w / renderWidth);
+      if (w > 0) {
+        setScale(w / renderWidth);
+        onScaleChange?.(w / renderWidth);
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [renderWidth]);
+  }, [renderWidth, onScaleChange]);
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-surface-0">
       <iframe
+        ref={iframeRef}
         srcDoc={srcDoc}
         title={title}
         className="absolute top-0 left-0 border-none"
@@ -50,6 +67,96 @@ function ScaledIframe({ srcDoc, title, scrollable = false, renderWidth = 1400 }:
   );
 }
 
+
+function ElementPickerOverlay({
+  iframeRef,
+  scale,
+  branchName,
+  onSelect,
+  onExit,
+}: {
+  iframeRef: RefObject<HTMLIFrameElement>;
+  scale: number;
+  branchName: string;
+  onSelect: (el: SelectedElement) => void;
+  onExit: () => void;
+}) {
+  const hoveredElRef = useRef<Element | null>(null);
+
+  // Inject highlight style into iframe
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.id = '__picker_style__';
+    style.textContent = `.__ph__ { outline: 2px solid #7C3AED !important; outline-offset: 2px !important; background: rgba(124,58,237,0.1) !important; }`;
+    doc.head?.appendChild(style);
+    return () => {
+      doc.getElementById('__picker_style__')?.remove();
+      hoveredElRef.current?.classList.remove('__ph__');
+      hoveredElRef.current = null;
+    };
+  }, [iframeRef]);
+
+  // Esc to exit
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onExit(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onExit]);
+
+  const getIframePoint = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const { x, y } = getIframePoint(e);
+    const el = doc.elementFromPoint(x, y);
+    if (el === hoveredElRef.current) return;
+    hoveredElRef.current?.classList.remove('__ph__');
+    if (el && el.tagName !== 'HTML' && el.tagName !== 'BODY') {
+      el.classList.add('__ph__');
+      hoveredElRef.current = el;
+    } else {
+      hoveredElRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    hoveredElRef.current?.classList.remove('__ph__');
+    hoveredElRef.current = null;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const { x, y } = getIframePoint(e);
+    const el = doc.elementFromPoint(x, y);
+    if (!el || el.tagName === 'HTML' || el.tagName === 'BODY') return;
+    el.classList.remove('__ph__');
+    hoveredElRef.current = null;
+    const tag = el.tagName.toLowerCase();
+    const text = (el.textContent ?? '')
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, 50);
+    onSelect({ tag, text, branchName });
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-30"
+      style={{ cursor: 'crosshair' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    />
+  );
+}
 
 function getFiles(branch: Branch): ProjectFile[] {
   return (
@@ -99,6 +206,8 @@ export function MergeWorkspace() {
   // Chat state
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingMsgContent, setEditingMsgContent] = useState('');
   const [aiPrompts, setAiPrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -108,6 +217,12 @@ export function MergeWorkspace() {
   const [merging, setMerging] = useState(false);
   const [mergeErrMsg, setMergeErrMsg] = useState<string | null>(null);
   const [createdBranchId, setCreatedBranchId] = useState<string | null>(null);
+
+  // Element picker
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
+  const activeIframeRef = useRef<HTMLIFrameElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
 
   // Reset when modal opens
   useEffect(() => {
@@ -120,6 +235,8 @@ export function MergeWorkspace() {
       setMergeErrMsg(null);
       setCreatedBranchId(null);
       setAiPrompts([]);
+      setIsSelectMode(false);
+      setSelectedElement(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -150,6 +267,11 @@ export function MergeWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, leftBranch?.id, rightBranch?.id]);
 
+  // Exit select mode when switching between previews
+  useEffect(() => {
+    setIsSelectMode(false);
+  }, [activeVersion]);
+
   // Auto-scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -162,7 +284,12 @@ export function MergeWorkspace() {
   const handleSend = () => {
     const trimmed = inputValue.trim();
     if (!trimmed || merging) return;
-    addMessage('user', trimmed);
+    let content = trimmed;
+    if (selectedElement) {
+      content = `<${selectedElement.tag}> from ${selectedElement.branchName} — ${trimmed}`;
+      setSelectedElement(null);
+    }
+    addMessage('user', content);
     setInputValue('');
   };
 
@@ -313,13 +440,36 @@ export function MergeWorkspace() {
                       : 'text-ink-secondary px-1 py-0.5'
                   )}
                 >
-                  {msg.content}
-                  {msg.role === 'user' && (
+                  {msg.role === 'user' && editingMsgId === msg.id ? (
+                    <textarea
+                      autoFocus
+                      value={editingMsgContent}
+                      onChange={(e) => setEditingMsgContent(e.target.value)}
+                      onBlur={() => {
+                        setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: editingMsgContent } : m));
+                        setEditingMsgId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: editingMsgContent } : m));
+                          setEditingMsgId(null);
+                        }
+                        if (e.key === 'Escape') {
+                          setEditingMsgId(null);
+                        }
+                      }}
+                      className="w-full resize-none bg-transparent text-sm text-ink-primary outline-none leading-snug pr-6"
+                      rows={Math.max(1, editingMsgContent.split('\n').length)}
+                    />
+                  ) : (
+                    msg.content
+                  )}
+                  {msg.role === 'user' && editingMsgId !== msg.id && (
                     <button
                       onClick={() => {
-                        setInputValue(msg.content);
-                        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-                        inputRef.current?.focus();
+                        setEditingMsgId(msg.id);
+                        setEditingMsgContent(msg.content);
                       }}
                       className="absolute top-2 right-2 opacity-40 group-hover/msg:opacity-100 transition-opacity text-ink-secondary hover:text-ink-primary"
                     >
@@ -361,34 +511,69 @@ export function MergeWorkspace() {
             {mergeErrMsg && (
               <p className="text-xs text-red-400 mb-2">{mergeErrMsg}</p>
             )}
-            <div className="flex gap-2 items-end rounded-xl border border-line bg-surface-2 focus-within:border-white/20 px-3 py-2.5 transition-colors">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Describe what to merge…"
-                rows={5}
-                disabled={merging}
-                className="flex-1 resize-none bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none leading-snug disabled:opacity-50"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || merging}
-                className={clsx(
-                  'w-7 h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 mb-0.5',
-                  inputValue.trim() && !merging
-                    ? 'bg-white text-surface-0'
-                    : 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                )}
-              >
-                <ArrowUp size={13} />
-              </button>
+            <div className="rounded-xl border border-line bg-surface-2 focus-within:border-white/20 transition-colors overflow-hidden">
+              {/* Selected element context card */}
+              {selectedElement && (
+                <div className="flex items-center gap-2 px-3 pt-2.5 pb-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 text-xs text-violet-300 min-w-0 flex-1">
+                    <span className="font-mono font-medium flex-shrink-0">&lt;{selectedElement.tag}&gt;</span>
+                    <span className="text-violet-400/60 flex-shrink-0">from</span>
+                    <span className="font-medium flex-shrink-0">{selectedElement.branchName}</span>
+                    {selectedElement.text && (
+                      <span className="text-violet-400/50 truncate">· "{selectedElement.text}"</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSelectedElement(null)}
+                    className="flex-shrink-0 text-ink-muted hover:text-ink-primary transition-colors"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-2 items-end px-3 py-2.5">
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Describe what to merge…"
+                  rows={5}
+                  disabled={merging}
+                  className="flex-1 resize-none bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none leading-snug disabled:opacity-50"
+                />
+                <div className="flex items-center gap-1 flex-shrink-0 mb-0.5">
+                  <button
+                    onClick={() => setIsSelectMode((v) => !v)}
+                    title={isSelectMode ? 'Cancel selection (Esc)' : 'Pick element from preview'}
+                    className={clsx(
+                      'w-7 h-7 rounded-full flex items-center justify-center transition-colors',
+                      isSelectMode
+                        ? 'bg-violet-500/30 text-violet-300 ring-1 ring-violet-500/50'
+                        : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-3'
+                    )}
+                  >
+                    <Crosshair size={13} />
+                  </button>
+                  <button
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || merging}
+                    className={clsx(
+                      'w-7 h-7 rounded-full flex items-center justify-center transition-colors',
+                      inputValue.trim() && !merging
+                        ? 'bg-white text-surface-0'
+                        : 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                    )}
+                  >
+                    <ArrowUp size={13} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -465,15 +650,34 @@ export function MergeWorkspace() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97, y: -10 }}
                 transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="absolute z-20 overflow-hidden border border-white/10 shadow-2xl"
-                style={{ left: '4%', top: '15%', right: '6%', bottom: '6%' }}
+                className="absolute z-20 overflow-hidden border shadow-2xl transition-colors"
+                style={{
+                  left: '4%', top: '15%', right: '6%', bottom: '6%',
+                  borderColor: isSelectMode ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.1)',
+                }}
               >
                 {activeCode ? (
-                  <ScaledIframe srcDoc={activeCode} title="active-preview" scrollable renderWidth={1000} />
+                  <ScaledIframe
+                    srcDoc={activeCode}
+                    title="active-preview"
+                    scrollable
+                    renderWidth={1000}
+                    iframeRef={activeIframeRef}
+                    onScaleChange={setPreviewScale}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-surface-2">
                     <span className="text-xs text-ink-muted">No preview yet</span>
                   </div>
+                )}
+                {isSelectMode && activeCode && (
+                  <ElementPickerOverlay
+                    iframeRef={activeIframeRef}
+                    scale={previewScale}
+                    branchName={toDisplayName(activeBranch?.name ?? '')}
+                    onSelect={(el) => { setSelectedElement(el); setIsSelectMode(false); }}
+                    onExit={() => setIsSelectMode(false)}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
