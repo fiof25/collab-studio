@@ -34,7 +34,7 @@ interface ProjectsStore {
 }
 
 export const useProjectsStore = create<ProjectsStore>((set) => ({
-  // projects: [emptyCollabProject, mockProject, pawMatchProject],
-  projects: [emptyCollabProject, pawMatchProject],
+  projects: [emptyCollabProject, mockProject, pawMatchProject],
+  // projects: [emptyCollabProject, pawMatchProject],
   addProject: (project) => set((s) => ({ projects: [...s.projects, project] })),
 }));
