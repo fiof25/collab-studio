@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone, Camera, Check } from 'lucide-react';
+import { useState, useRef, useEffect, type RefObject } from 'react';
+import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone, Camera, Check, Crosshair } from 'lucide-react';
 import { clsx } from 'clsx';
 import { FullCodeViewer } from './CodeViewer';
 import { BlueprintPanel } from './BlueprintPanel';
@@ -11,6 +11,9 @@ import type { Comment } from '@/types/branch';
 interface PreviewPanelProps {
   branchId: string;
   accentColor: string;
+  isPickMode?: boolean;
+  onTogglePickMode?: () => void;
+  onPickElement?: (elementText: string) => void;
 }
 
 type ActiveTab = 'preview' | 'code' | 'blueprint';
@@ -27,7 +30,7 @@ const DEMO_AUTHOR = {
   color: '#8B5CF6',
 };
 
-export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
+export function PreviewPanel({ branchId, accentColor, isPickMode, onTogglePickMode, onPickElement }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('preview');
   const [device, setDevice] = useState<DeviceWidth>('full');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -89,14 +92,14 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full bg-surface-1">
       {/* Tab bar */}
-      <div className="flex items-center justify-between px-4 border-b border-line flex-shrink-0 h-12">
+      <div className="flex items-center justify-between px-4 border-b border-line flex-shrink-0 h-10">
         <div className="flex items-center gap-1">
           {(['preview', 'code', 'blueprint'] as ActiveTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={clsx(
-                'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors',
+                'px-3 py-1 rounded-md text-sm font-medium capitalize transition-colors',
                 activeTab === tab ? 'text-ink-primary bg-surface-2' : 'text-ink-muted hover:text-ink-secondary'
               )}
             >
@@ -107,6 +110,20 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
 
         {activeTab === 'preview' && (
           <div className="flex items-center gap-1">
+            {/* Element picker toggle */}
+            {onTogglePickMode && (
+              <button
+                onClick={() => { onTogglePickMode(); setCommentMode(false); }}
+                title={isPickMode ? 'Cancel element pick (Esc)' : 'Pick element to reference in chat'}
+                className={clsx(
+                  'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
+                  isPickMode ? 'bg-violet-500/30 text-violet-300 ring-1 ring-violet-500/50' : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-2'
+                )}
+              >
+                <Crosshair size={14} />
+              </button>
+            )}
+            <div className="w-px h-4 bg-line mx-0.5" />
             {/* Device toggle */}
             <button
               onClick={() => setDevice((d) => DEVICE_CYCLE[(DEVICE_CYCLE.indexOf(d) + 1) % DEVICE_CYCLE.length])}
@@ -164,7 +181,7 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
           <div className="w-full h-full overflow-hidden bg-surface-0 p-2 flex items-stretch justify-center">
             <div
               ref={previewContainerRef}
-              className="h-full bg-white rounded-lg overflow-hidden shadow-float relative transition-all duration-200"
+              className="h-full bg-white overflow-hidden shadow-float relative transition-all duration-200"
               style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
             >
               {latestCode ? (
@@ -237,6 +254,11 @@ export function PreviewPanel({ branchId, accentColor }: PreviewPanelProps) {
                   }}
                   onCancel={() => setThumbnailMode(false)}
                 />
+              )}
+
+              {/* Element picker overlay */}
+              {isPickMode && onPickElement && (
+                <PreviewElementPicker iframeRef={iframeRef} onPick={onPickElement} onExit={() => onTogglePickMode?.()} />
               )}
             </div>
           </div>
@@ -333,12 +355,10 @@ function ThumbnailSelector({
 
   return (
     <div className="absolute inset-0 z-30">
-      {/* Dark overlay above the frame */}
       <div
         className="absolute inset-x-0 top-0 bg-black/50"
         style={{ height: frameY }}
       />
-      {/* The draggable frame */}
       <div
         onMouseDown={handleMouseDown}
         className={clsx(
@@ -347,17 +367,14 @@ function ThumbnailSelector({
         )}
         style={{ top: frameY, height: frameH }}
       >
-        {/* Grab handle indicator */}
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
           <div className="w-8 h-1 rounded-full bg-white/60" />
         </div>
       </div>
-      {/* Dark overlay below the frame */}
       <div
         className="absolute inset-x-0 bottom-0 bg-black/50"
         style={{ top: frameY + frameH }}
       />
-      {/* Confirm / Cancel buttons */}
       <div
         className="absolute flex gap-2 right-2"
         style={{ top: Math.min(frameY + frameH + 8, containerHeight - 36) }}
@@ -376,6 +393,96 @@ function ThumbnailSelector({
         </button>
       </div>
     </div>
+  );
+}
+
+// ── Element Picker Overlay ─────────────────────────────────────────────────────
+
+function PreviewElementPicker({
+  iframeRef,
+  onPick,
+  onExit,
+}: {
+  iframeRef: RefObject<HTMLIFrameElement>;
+  onPick: (elementText: string) => void;
+  onExit: () => void;
+}) {
+  const hoveredElRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.id = '__picker_style__';
+    style.textContent = `.__ph__ { outline: 2px solid #7C3AED !important; outline-offset: 2px !important; background: rgba(124,58,237,0.08) !important; }`;
+    doc.head?.appendChild(style);
+    return () => {
+      doc.getElementById('__picker_style__')?.remove();
+      hoveredElRef.current?.classList.remove('__ph__');
+      hoveredElRef.current = null;
+    };
+  }, [iframeRef]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onExit(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onExit]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const el = doc.elementFromPoint(x, y);
+    if (el === hoveredElRef.current) return;
+    hoveredElRef.current?.classList.remove('__ph__');
+    if (el && el.tagName !== 'HTML' && el.tagName !== 'BODY') {
+      el.classList.add('__ph__');
+      hoveredElRef.current = el;
+    } else {
+      hoveredElRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    hoveredElRef.current?.classList.remove('__ph__');
+    hoveredElRef.current = null;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const el = doc.elementFromPoint(x, y);
+    if (!el || el.tagName === 'HTML' || el.tagName === 'BODY') return;
+    el.classList.remove('__ph__');
+    hoveredElRef.current = null;
+    const tag = el.tagName.toLowerCase();
+    const text = (el.textContent ?? '')
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, 60);
+    onPick(text ? `<${tag}> "${text}"` : `<${tag}>`);
+  };
+
+  return (
+    <>
+      <div
+        className="absolute inset-0 z-30"
+        style={{ cursor: 'crosshair' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
+      />
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-violet-600 text-white text-xs font-medium pointer-events-none select-none z-40">
+        Click an element to reference it in chat
+      </div>
+    </>
   );
 }
 

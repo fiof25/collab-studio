@@ -31,6 +31,7 @@
     background-color: rgb(var(--canvas));
     color: rgb(var(--ink-primary));
     font-family: 'Google Sans', system-ui, sans-serif;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

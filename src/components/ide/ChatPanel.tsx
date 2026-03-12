@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Sparkles } from 'lucide-react';
+import { FourPointStar } from '@/components/shared/FourPointStar';
 import { nanoid } from 'nanoid';
 import { useChatStore } from '@/store/useChatStore';
 import { useChatStream } from '@/hooks/useChatStream';
@@ -10,9 +10,13 @@ import { ChatInput } from './ChatInput';
 interface ChatPanelProps {
   branchId: string;
   accentColor: string;
+  isPickMode: boolean;
+  onTogglePickMode: () => void;
+  pickedElement: string | null;
+  onClearPickedElement: () => void;
 }
 
-export function ChatPanel({ branchId }: ChatPanelProps) {
+export function ChatPanel({ branchId, isPickMode, onTogglePickMode, pickedElement, onClearPickedElement }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { threads, isStreaming, clearThread, setSelectedAnswer } = useChatStore();
   const { sendMessage, abort } = useChatStream(branchId);
@@ -88,6 +92,10 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
         onStop={abort}
         isStreaming={isStreaming}
         onClear={messages.length > 0 ? () => clearThread(branchId) : undefined}
+        isPickMode={isPickMode}
+        onTogglePickMode={onTogglePickMode}
+        pickedElement={pickedElement}
+        onClearPickedElement={onClearPickedElement}
       />
     </div>
   );
@@ -96,8 +104,8 @@ export function ChatPanel({ branchId }: ChatPanelProps) {
 function EmptyState({ branchName }: { branchName?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-      <Sparkles size={28} className="text-ink-muted" />
-      <p className="text-sm font-medium text-ink-secondary leading-snug max-w-[260px]">
+      <FourPointStar size={48} className="text-ink-muted" />
+      <p className="text-base text-ink-secondary leading-relaxed">
         Start chatting with AI
       </p>
     </div>

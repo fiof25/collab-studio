@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-import { ArrowUp, Square, Sparkles, X, Trash2, ChevronDown } from 'lucide-react';
+import { ArrowUp, Square, X, Trash2, ChevronDown, Crosshair } from 'lucide-react';
+import { FourPointStar } from '@/components/shared/FourPointStar';
 import { clsx } from 'clsx';
 import { useAIConfig } from '@/hooks/useAIConfig';
 
@@ -9,6 +10,10 @@ interface ChatInputProps {
   isStreaming: boolean;
   disabled?: boolean;
   onClear?: () => void;
+  isPickMode?: boolean;
+  onTogglePickMode?: () => void;
+  pickedElement?: string | null;
+  onClearPickedElement?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -25,7 +30,6 @@ function formatModelName(model: string, provider: string): string {
     if (m) return `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]}`;
   }
   if (provider === 'gemini') {
-    // "gemini-2.0-flash" → "Flash 2.0", "gemini-2.0-flash-lite" → "Flash Lite 2.0"
     const m = model.match(/gemini-([\d.]+)-(.+)/);
     if (m) {
       const variant = m[2].split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
@@ -35,7 +39,17 @@ function formatModelName(model: string, provider: string): string {
   return model;
 }
 
-export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  onStop,
+  isStreaming,
+  disabled,
+  onClear,
+  isPickMode,
+  onTogglePickMode,
+  pickedElement,
+  onClearPickedElement,
+}: ChatInputProps) {
   const [value, setValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -63,6 +77,11 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
     return () => document.removeEventListener('mousedown', handler);
   }, [showModelPicker]);
 
+  // Focus textarea when an element is picked
+  useEffect(() => {
+    if (pickedElement) textareaRef.current?.focus();
+  }, [pickedElement]);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -74,8 +93,10 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
     if (isStreaming) return;
     const trimmed = value.trim();
     if (!trimmed) return;
-    onSend(trimmed, selectedTier);
+    const content = pickedElement ? `${pickedElement} — ${trimmed}` : trimmed;
+    onSend(content, selectedTier);
     setValue('');
+    onClearPickedElement?.();
   };
 
   const handleSuggestion = (text: string) => {
@@ -83,7 +104,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
     onSend(text, selectedTier);
   };
 
-  const showChips = !value && !isStreaming && showSuggestions;
+  const showChips = !value && !isStreaming && showSuggestions && !pickedElement;
   const activeModel = config.models[selectedTier];
   const displayName = formatModelName(activeModel, config.provider);
 
@@ -91,14 +112,28 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
     <div className="p-3 border-t border-line bg-surface-1">
       <div
         className={clsx(
-          'rounded-2xl border border-line bg-surface-2 overflow-hidden transition-colors',
-          'focus-within:border-white/20'
+          'rounded-2xl border bg-surface-2 overflow-hidden transition-colors',
+          isPickMode ? 'border-violet-500/60' : 'border-line focus-within:border-white/20'
         )}
       >
+        {/* Picked element chip */}
+        {pickedElement && (
+          <div className="flex items-center gap-2 px-3 pt-2.5 pb-1">
+            <span className="flex-1 text-xs text-violet-300 bg-violet-500/15 border border-violet-500/30 rounded-lg px-2.5 py-1 font-mono truncate">
+              {pickedElement}
+            </span>
+            <button
+              onClick={onClearPickedElement}
+              className="flex-shrink-0 text-ink-muted hover:text-ink-primary transition-colors"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        )}
+
         {/* Suggestion chips */}
         {showChips && (
           <div className="flex items-center gap-2 px-3 pt-3 pb-1">
-            <Sparkles size={13} className="text-ink-muted flex-shrink-0" />
             <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -125,7 +160,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Make changes, add new features, ask for anything"
+          placeholder={pickedElement ? 'Describe what to change…' : 'Make changes, add new features, ask for anything'}
           rows={1}
           disabled={isStreaming || disabled}
           className={clsx(
@@ -153,7 +188,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
               onClick={() => setShowModelPicker(!showModelPicker)}
               className="flex items-center gap-1 text-[10px] text-ink-muted/50 hover:text-ink-muted transition-colors"
             >
-              <Sparkles size={9} />
+              <FourPointStar size={9} />
               {displayName}
               <ChevronDown size={9} />
             </button>
@@ -186,6 +221,21 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, onClear }: Ch
           </div>
 
           <div className="flex-1" />
+
+          {onTogglePickMode && (
+            <button
+              onClick={onTogglePickMode}
+              title={isPickMode ? 'Cancel element pick (Esc)' : 'Pick element from preview'}
+              className={clsx(
+                'w-7 h-7 rounded-full flex items-center justify-center transition-colors',
+                isPickMode
+                  ? 'bg-violet-500/30 text-violet-300 ring-1 ring-violet-500/50'
+                  : 'text-ink-muted hover:text-ink-secondary hover:bg-surface-3'
+              )}
+            >
+              <Crosshair size={13} />
+            </button>
+          )}
 
           {isStreaming ? (
             <button

@@ -43,40 +43,41 @@ mergeRouter.post('/prompts', async (req, res) => {
 
   if (!apiKey || apiKey === 'your_key_here') {
     return res.json({ prompts: [
-      `Keep ${baseName}'s layout, adopt ${contributorName}'s styling.`,
-      `Use ${contributorName}'s color scheme on ${baseName}'s structure.`,
-      `Merge navigation from ${baseName} with content from ${contributorName}.`,
-      `Use ${baseName} as the base, bring in ${contributorName}'s visual updates.`,
+      `Keep ${baseName}'s layout, use ${contributorName}'s look and feel.`,
+      `Apply ${contributorName}'s color scheme to ${baseName}'s sections.`,
+      `Keep ${baseName}'s navigation, use ${contributorName}'s content areas.`,
+      `Use ${baseName} as the base, bring in ${contributorName}'s visual style.`,
     ]});
   }
 
   const baseFeatures = (baseBlueprint?.features ?? []).map(f => `${f.name}${f.description ? ` (${f.description})` : ''}`).join('\n- ') || 'none';
   const contribFeatures = (contributorBlueprint?.features ?? []).map(f => `${f.name}${f.description ? ` (${f.description})` : ''}`).join('\n- ') || 'none';
 
-  const userMessage = `You are helping a designer write merge instructions to combine two UI prototypes using AI.
+  const userMessage = `You are helping a designer write merge instructions to combine two UI prototypes.
 
 BASE ("${baseName}"):
-Features:
 - ${baseFeatures}
-${baseHtml ? `HTML snippet:\n${baseHtml.slice(0, 3000)}` : ''}
+${baseHtml ? `HTML:\n${baseHtml.slice(0, 2000)}` : ''}
 
 CONTRIBUTOR ("${contributorName}"):
-Features:
 - ${contribFeatures}
-${contributorHtml ? `HTML snippet:\n${contributorHtml.slice(0, 3000)}` : ''}
+${contributorHtml ? `HTML:\n${contributorHtml.slice(0, 2000)}` : ''}
 
-Your task: generate exactly 6 merge instruction suggestions a designer would actually type. Each should:
-- Be a complete instruction sentence (not a title or label)
-- Reference specific, observable elements from the HTML (e.g. actual colors, font styles, section names, component types you can see in the code)
-- Describe a concrete outcome — what the merged result should look like or preserve
-- Be 10–20 words long
-- NOT use vague phrases like "combine the two", "best of both", or "merge the versions"
+Generate exactly 4 short, specific merge suggestions written in plain designer language. Rules:
+- Max 10 words each
+- Start with an action verb (Keep, Use, Apply, Replace, Add, Swap)
+- Describe visual elements by what they look like, not their technical implementation
+- Cover different aspects: layout, color/style, typography, components
+- NEVER use: hex codes, CSS property names, class names, file names, px/rem values, or any developer jargon
+- No vague phrases ("best of both", "combine the two")
 
 Good examples:
-- "Keep ${baseName}'s dark sidebar and top nav, replace the hero with ${contributorName}'s gradient background."
-- "Use ${contributorName}'s card grid layout but keep ${baseName}'s typography and color palette."
+- "Keep ${baseName}'s nav, use ${contributorName}'s hero section"
+- "Apply ${contributorName}'s dark color scheme to ${baseName}"
+- "Use ${contributorName}'s card grid layout, keep ${baseName}'s typography"
+- "Replace ${baseName}'s light background with ${contributorName}'s dark theme"
 
-Respond with ONLY a JSON array of 6 strings. No markdown, no explanation.`;
+Respond with ONLY a JSON array of 4 strings. No markdown, no explanation.`;
 
   try {
     const { callClaude } = await import('../agents/tools.js');
@@ -92,7 +93,7 @@ Respond with ONLY a JSON array of 6 strings. No markdown, no explanation.`;
       prompts = match ? JSON.parse(match[0]) : [];
     }
 
-    res.json({ prompts: Array.isArray(prompts) ? prompts.slice(0, 6) : [] });
+    res.json({ prompts: Array.isArray(prompts) ? prompts.slice(0, 4) : [] });
   } catch (err) {
     res.status(500).json({ prompts: [], error: err.message });
   }

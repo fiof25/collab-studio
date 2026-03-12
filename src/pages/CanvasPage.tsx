@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { TopNav } from '@/components/shared/TopNav';
 import { ProjectCanvas } from '@/components/canvas/ProjectCanvas';
 import { MergeModal } from '@/components/canvas/MergeModal';
+import { MergeWorkspace } from '@/components/canvas/MergeWorkspace';
 import { GlobalCommentsPanel } from '@/components/canvas/GlobalCommentsPanel';
 import { useUIStore } from '@/store/useUIStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -62,7 +63,7 @@ export function CanvasPage() {
       </div>
 
       {/* Modals */}
-      <MergeModal variant="merge" />
+      <MergeWorkspace />
       <MergeModal variant="newBranch" />
       <MergeModal variant="newDraft" />
       <GlobalCommentsPanel />
