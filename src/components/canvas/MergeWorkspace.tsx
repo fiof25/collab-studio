@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Merge, Loader2, ArrowUp, Pencil, Crosshair, X } from 'lucide-react';
+import { ArrowLeft, Merge, Loader2, ArrowUp, Pencil, Crosshair, X, Trash2 } from 'lucide-react';
 import { FourPointStar } from '@/components/shared/FourPointStar';
 import { clsx } from 'clsx';
 import { nanoid } from 'nanoid';
@@ -442,27 +442,44 @@ export function MergeWorkspace() {
                   )}
                 >
                   {msg.role === 'user' && editingMsgId === msg.id ? (
-                    <textarea
-                      autoFocus
-                      value={editingMsgContent}
-                      onChange={(e) => setEditingMsgContent(e.target.value)}
-                      onBlur={() => {
-                        setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: editingMsgContent } : m));
-                        setEditingMsgId(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
+                    <>
+                      <textarea
+                        autoFocus
+                        value={editingMsgContent}
+                        onChange={(e) => {
+                          setEditingMsgContent(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = `${e.target.scrollHeight}px`;
+                        }}
+                        ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }}
+                        onBlur={() => {
                           setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: editingMsgContent } : m));
                           setEditingMsgId(null);
-                        }
-                        if (e.key === 'Escape') {
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: editingMsgContent } : m));
+                            setEditingMsgId(null);
+                          }
+                          if (e.key === 'Escape') {
+                            setEditingMsgId(null);
+                          }
+                        }}
+                        className="w-full resize-none bg-transparent text-sm text-ink-primary outline-none leading-snug pr-12 overflow-hidden"
+                        rows={1}
+                      />
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setMessages((prev) => prev.filter((m) => m.id !== msg.id));
                           setEditingMsgId(null);
-                        }
-                      }}
-                      className="w-full resize-none bg-transparent text-sm text-ink-primary outline-none leading-snug pr-6"
-                      rows={Math.max(1, editingMsgContent.split('\n').length)}
-                    />
+                        }}
+                        className="absolute top-2 right-2 text-ink-muted hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </>
                   ) : (
                     msg.content
                   )}
