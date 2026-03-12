@@ -24,7 +24,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '4mb' }));
 
-app.use('/api/blueprint', createRateLimiter({ maxCalls: 10, windowMs: 60_000 }), blueprintRouter);
+app.use('/api/blueprint', createRateLimiter({ maxCalls: 30, windowMs: 60_000 }), blueprintRouter);
 app.use('/api/merge', createRateLimiter({ maxCalls: 5, windowMs: 60_000 }), mergeRouter);
 
 // Image generation endpoint (Gemini only) — used by in-preview prototypes

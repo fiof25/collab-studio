@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, type RefObject } from 'react';
-import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone, Camera, Check, Crosshair } from 'lucide-react';
+import { RefreshCw, MessageCircle, X, Send, MonitorSmartphone, Camera, Check, Crosshair, Code2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { FullCodeViewer } from './CodeViewer';
 import { BlueprintPanel } from './BlueprintPanel';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useChatStore } from '@/store/useChatStore';
 import { useUIStore } from '@/store/useUIStore';
 import { formatRelativeTime } from '@/utils/dateUtils';
 import type { Comment } from '@/types/branch';
@@ -54,6 +55,12 @@ export function PreviewPanel({ branchId, accentColor, isPickMode, onTogglePickMo
     latestCheckpoint?.codeSnapshot ??
     '';
   const pinnedComments = (branch?.comments ?? []).filter((c) => c.x !== undefined && c.y !== undefined);
+
+  // Detect "coder is running" — route is build, stream is open, chat text already arrived
+  const chatThread = useChatStore((s) => s.threads[branchId] ?? []);
+  const isStreaming = useChatStore((s) => s.isStreaming);
+  const lastAssistant = [...chatThread].reverse().find((m) => m.role === 'assistant');
+  const isBuilding = isStreaming && lastAssistant?.route === 'build' && !!lastAssistant?.content && !lastAssistant?.codeGenerated;
   const currentScrollY = branch?.previewScrollY ?? 0;
 
   // Resolve active file — fall back to index.html or first file; if path not in list, reset
@@ -185,14 +192,19 @@ export function PreviewPanel({ branchId, accentColor, isPickMode, onTogglePickMo
               style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
             >
               {latestCode ? (
-                <iframe
-                  key={refreshKey}
-                  ref={iframeRef}
-                  srcDoc={latestCode}
-                  className="w-full h-full border-none"
-                  title="Preview"
-                  sandbox="allow-scripts allow-same-origin"
-                />
+                <>
+                  <iframe
+                    key={refreshKey}
+                    ref={iframeRef}
+                    srcDoc={latestCode}
+                    className="w-full h-full border-none"
+                    title="Preview"
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                  {isBuilding && <BuildingOverlay />}
+                </>
+              ) : isBuilding ? (
+                <BuildingOverlay />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   <p className="text-sm">No preview available</p>
@@ -726,6 +738,100 @@ function NewCommentPin({
           borderTop: `5px solid ${DEMO_AUTHOR.color}`,
         }}
       />
+    </div>
+  );
+}
+
+// ── Building Overlay ────────────────────────────────────────────────────────────
+
+const BUILDING_MESSAGES = [
+  'Wrangling pixels into place...',
+  'Teaching divs to behave...',
+  'Convincing CSS that center means center...',
+  'Brewing some fresh components...',
+  'Asking the AI nicely for clean code...',
+  'Aligning things that refuse to align...',
+  'Sprinkling some UI magic...',
+  'Turning caffeine into code...',
+  'Negotiating with the layout engine...',
+  'Almost there — just one more semicolon...',
+];
+
+function BuildingOverlay() {
+  const [elapsed, setElapsed] = useState(0);
+  const [msgIndex, setMsgIndex] = useState(() => Math.floor(Math.random() * BUILDING_MESSAGES.length));
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % BUILDING_MESSAGES.length);
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const timeStr = minutes > 0
+    ? `${minutes}:${seconds.toString().padStart(2, '0')}`
+    : `${seconds}s`;
+
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-surface-0/80 backdrop-blur-sm">
+      {/* Animated code icon */}
+      <div className="relative mb-6">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center border border-white/10">
+          <Code2 size={28} className="text-violet-400 animate-pulse" />
+        </div>
+        {/* Orbiting dots */}
+        <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-violet-400" />
+        </div>
+        <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s', animationDelay: '1s' }}>
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-cyan-400" />
+        </div>
+        <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s', animationDelay: '2s' }}>
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-pink-400" />
+        </div>
+      </div>
+
+      <p className="text-sm font-medium text-ink-primary mb-1">Building your app</p>
+      <p
+        key={msgIndex}
+        className="text-xs text-ink-muted mb-3 animate-fade-in"
+      >
+        {BUILDING_MESSAGES[msgIndex]}
+      </p>
+
+      {/* Progress bar shimmer */}
+      <div className="w-48 h-1 rounded-full bg-surface-3 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-violet-500 via-cyan-400 to-violet-500 animate-pulse"
+          style={{
+            width: '60%',
+            animation: 'shimmer 2s ease-in-out infinite',
+          }}
+        />
+      </div>
+
+      <p className="text-[11px] text-ink-muted/60 mt-2 tabular-nums">{timeStr}</p>
+
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        @keyframes fade-in {
+          0% { opacity: 0; transform: translateY(4px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

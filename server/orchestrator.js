@@ -31,7 +31,11 @@ function detectAfterQuestion(messages) {
 
 /** Write an SSE event */
 function sendSSE(res, data) {
-  if (res.writableEnded) return;
+  if (res.writableEnded) {
+    console.warn('[SSE] DROPPED (stream ended):', data.type, data.type === 'text' ? data.text?.slice(0, 60) : '');
+    return;
+  }
+  console.log(`[SSE] → ${data.type}${data.type === 'text' ? `: "${data.text?.slice(0, 60)}"` : data.type === 'route' ? `: ${data.route}` : data.type === 'code' ? `: ${data.html?.length} chars` : ''}`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
@@ -109,13 +113,16 @@ async function handleMock(req, res) {
 
 export async function handleChat(req, res) {
   const isMock = !aiConfig.apiKey || aiConfig.apiKey === 'your_key_here';
+  console.log(`\n${'='.repeat(60)}\n[pipeline] POST /api/chat | mock=${isMock} | provider=${aiConfig.provider} | model=${aiConfig.models?.large}`);
   if (isMock) return handleMock(req, res);
 
   const { messages = [], currentCode = '', tier = 'large', blueprint } = req.body;
   const apiKey = aiConfig.apiKey;
 
+  console.log(`[pipeline] Messages: ${messages.length}, lastMsg: "${messages[messages.length - 1]?.content?.slice(0, 80)}", hasCode: ${!!currentCode}, tier: ${tier}`);
+
   let aborted = false;
-  req.on('close', () => { aborted = true; });
+  res.on('close', () => { aborted = true; console.warn('[pipeline] ⚠ Client disconnected (res close)'); });
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -128,24 +135,31 @@ export async function handleChat(req, res) {
     const afterQuestion = detectAfterQuestion(messages);
 
     // ── Router ──
+    console.log('[pipeline] 1/4 Running router...');
     const routerResult = await runRouterAgent({ lastMessage, recentContext, hasCode, afterQuestion, apiKey });
     const route = routerResult.route;
-    console.log(`[pipeline] Route: ${route} (afterQuestion: ${afterQuestion})`);
+    console.log(`[pipeline] 1/4 Router done → route=${route} (afterQuestion: ${afterQuestion})`);
     sendSSE(res, { type: 'route', route });
 
-    if (aborted) { res.end(); return; }
+    if (aborted) { console.log('[pipeline] ABORTED after router'); res.end(); return; }
 
     // ── Chat path ──
     if (route === 'chat') {
+      console.log('[pipeline] 2/4 Chat path — streaming chat agent...');
+      let chatChunks = 0;
       for await (const chunk of runChatAgent({ messages, mode: 'chat', apiKey })) {
         if (aborted) break;
+        chatChunks++;
         sendSSE(res, { type: 'text', text: chunk });
       }
+      console.log(`[pipeline] 2/4 Chat agent done — ${chatChunks} chunks`);
     }
 
     // ── Question path ──
     else if (route === 'question') {
+      console.log('[pipeline] 2/4 Question path — running question agent...');
       const qResult = await runQuestionAgent({ lastMessage, recentContext, hasCode, apiKey });
+      console.log(`[pipeline] 2/4 Question agent done — success=${qResult.success}, questions=${qResult.questions?.length}`);
       if (qResult.success && qResult.text) {
         sendSSE(res, { type: 'text', text: qResult.text });
       }
@@ -157,42 +171,66 @@ export async function handleChat(req, res) {
     // ── Build path ──
     else {
       // Step 1: Prompt Builder (blocking)
+      console.log('[pipeline] 2/4 Build path — running prompt agent...');
       const promptResult = await runPromptAgent({ messages, currentCode, blueprint, tier, apiKey });
-      if (aborted) { res.end(); return; }
+      console.log(`[pipeline] 2/4 Prompt agent done — success=${promptResult.success}, instructions=${promptResult.instructions?.length} chars`);
+      if (aborted) { console.log('[pipeline] ABORTED after prompt agent'); res.end(); return; }
 
       const { instructions, summary } = promptResult;
-      console.log(`[pipeline] Prompt Builder: ${instructions.slice(0, 80)}...`);
+      console.log(`[pipeline] Summary: "${summary?.slice(0, 80)}"`);
 
       // Step 2: Coder + Chat in parallel
+      console.log('[pipeline] 3/4 Starting coder agent (async)...');
       const coderPromise = runCoderAgent({ instructions, currentCode, tier, apiKey });
 
       // Stream chat while coder runs (protected so coderPromise is always awaited)
+      console.log('[pipeline] 3/4 Starting chat agent (streaming)...');
+      let chatChunks = 0;
       try {
         for await (const chunk of runChatAgent({ messages, mode: 'build', summary, apiKey })) {
           if (aborted) break;
+          chatChunks++;
           sendSSE(res, { type: 'text', text: chunk });
         }
+        console.log(`[pipeline] 3/4 Chat agent done — ${chatChunks} chunks streamed`);
       } catch (chatErr) {
-        console.error('[pipeline] Chat agent error:', chatErr.message);
+        console.error('[pipeline] 3/4 Chat agent CRASHED:', chatErr);
         sendSSE(res, { type: 'text', text: 'Working on your request...' });
       }
 
-      if (aborted) { res.end(); return; }
+      if (aborted) { console.log('[pipeline] ABORTED after chat agent'); res.end(); return; }
 
       // Await coder result
+      console.log('[pipeline] 4/4 Awaiting coder result...');
       const coderResult = await coderPromise;
-      console.log(`[pipeline] Coder: ${coderResult.success ? `${coderResult.html.length} chars` : coderResult.error}`);
+      console.log(`[pipeline] 4/4 Coder done — success=${coderResult.success}, html=${coderResult.html?.length ?? 0} chars, error=${coderResult.error ?? 'none'}`);
       if (coderResult.success && coderResult.html) {
         sendSSE(res, { type: 'code', html: coderResult.html });
+
+        // Step 5: Recap — describe what was built in plain language
+        if (!aborted) {
+          console.log('[pipeline] 5/5 Starting recap agent...');
+          try {
+            sendSSE(res, { type: 'text', text: '\n\n' });
+            for await (const chunk of runChatAgent({ mode: 'recap', html: coderResult.html, apiKey })) {
+              if (aborted) break;
+              sendSSE(res, { type: 'text', text: chunk });
+            }
+            console.log('[pipeline] 5/5 Recap done');
+          } catch (recapErr) {
+            console.error('[pipeline] 5/5 Recap error:', recapErr.message);
+          }
+        }
       } else {
         sendSSE(res, { type: 'text', text: `\n\n⚠️ Code generation failed: ${coderResult.error || 'empty response'}` });
       }
     }
 
+    console.log('[pipeline] ✓ Done — sending [DONE]');
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (err) {
-    console.error('Orchestrator error:', err);
+    console.error('[pipeline] ✗ TOP-LEVEL ERROR:', err);
     if (!res.headersSent) {
       res.status(500).json({ error: err.message ?? 'Internal server error' });
     } else {

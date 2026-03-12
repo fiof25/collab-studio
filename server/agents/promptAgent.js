@@ -20,6 +20,7 @@ Output ONLY a JSON object:
 export async function runPromptAgent({ messages, currentCode, blueprint, tier, apiKey }) {
   try {
     const model = config.models[tier] || config.models.large;
+    console.log(`[prompt] Calling ${model}...`);
 
     let userContent = '';
     if (blueprint) {
@@ -36,15 +37,18 @@ export async function runPromptAgent({ messages, currentCode, blueprint, tier, a
     const raw = await callModel(apiKey, model, {
       system: SYSTEM,
       messages: [{ role: 'user', content: userContent }],
-    }, { temperature: 0.3, maxOutputTokens: 1024 });
+    }, { temperature: 0.3, maxOutputTokens: 4096 });
+    console.log(`[prompt] Raw response (${raw.length} chars): "${raw.slice(0, 120)}..."`);
 
     const parsed = parseJSON(raw);
+    console.log(`[prompt] Parsed OK — instructions: ${parsed.instructions?.length ?? 0} chars, summary: "${parsed.summary?.slice(0, 60)}"`);
     return {
       success: true,
       instructions: parsed.instructions || raw,
       summary: parsed.summary || 'Building your request...',
     };
   } catch (err) {
+    console.error(`[prompt] ERROR:`, err);
     // Fallback: use the last user message as instructions
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     return {

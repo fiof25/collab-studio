@@ -17,15 +17,18 @@ export async function runRouterAgent({ lastMessage, recentContext, hasCode, afte
   try {
     const userContent = `Recent context:\n${recentContext}\n\nLatest message: "${lastMessage}"\nHas existing code: ${hasCode}`;
 
+    console.log(`[router] Calling ${config.models.small}...`);
     const raw = await callModel(apiKey, config.models.small, {
       system: SYSTEM,
       messages: [{ role: 'user', content: userContent }],
     }, { temperature: 0, maxOutputTokens: 30 });
+    console.log(`[router] Raw response: "${raw}"`);
 
     const parsed = parseJSON(raw);
     const route = ['build', 'question', 'chat'].includes(parsed.route) ? parsed.route : 'build';
     return { success: true, route };
-  } catch {
+  } catch (err) {
+    console.error(`[router] ERROR:`, err);
     return { success: true, route: 'build' };
   }
 }

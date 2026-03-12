@@ -52,13 +52,17 @@ export async function callGemini(apiKey, model, { system, messages }, params = {
   const chat = genModel.startChat({
     history,
     generationConfig: {
-      maxOutputTokens: params.maxOutputTokens ?? 8192,
+      maxOutputTokens: params.maxOutputTokens ?? 16384,
       temperature: params.temperature ?? 0.7,
     },
   });
 
   const result = await chat.sendMessage(lastParts);
-  return result.response.text();
+  const text = result.response.text();
+  const finishReason = result.response.candidates?.[0]?.finishReason;
+  const truncated = finishReason === 'MAX_TOKENS';
+  if (truncated) console.warn(`[gemini] Response truncated (MAX_TOKENS) — ${text.length} chars`);
+  return params.richResponse ? { text, truncated } : text;
 }
 
 /**
@@ -76,7 +80,7 @@ export async function* streamGemini(apiKey, model, { system, messages }, params 
   const chat = genModel.startChat({
     history,
     generationConfig: {
-      maxOutputTokens: params.maxOutputTokens ?? 8192,
+      maxOutputTokens: params.maxOutputTokens ?? 16384,
       temperature: params.temperature ?? 0.7,
     },
   });
