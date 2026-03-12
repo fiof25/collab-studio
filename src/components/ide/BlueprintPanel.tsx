@@ -29,6 +29,32 @@ function FeatureRow({ feature }: { feature: BlueprintFeature }) {
       {open && (
         <div className="px-3 pb-2.5 space-y-2 border-t border-line/50">
           <p className="text-xs text-ink-secondary leading-relaxed pt-2">{feature.description}</p>
+          {feature.behavior && (
+            <p className="text-[11px] text-ink-muted leading-relaxed italic">{feature.behavior}</p>
+          )}
+          {feature.state?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <span className="text-[10px] text-ink-muted">State:</span>
+              {feature.state.map((s) => (
+                <span key={s} className="text-[10px] font-mono bg-surface-0 text-cyan-400/80 rounded px-1.5 py-0.5 border border-line">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {feature.entryPoints?.length > 0 && (
+            <div className="space-y-0.5">
+              <span className="text-[10px] text-ink-muted">Entry Points:</span>
+              {feature.entryPoints.map((ep) => (
+                <div key={ep.name} className="flex items-center gap-1.5 ml-2">
+                  <span className={`text-[9px] font-mono px-1 rounded ${ep.direction === 'in' ? 'bg-emerald-500/15 text-emerald-400' : ep.direction === 'out' ? 'bg-amber-500/15 text-amber-400' : 'bg-violet-500/15 text-violet-400'}`}>
+                    {ep.direction}
+                  </span>
+                  <span className="text-[10px] font-mono text-ink-secondary">{ep.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {feature.files.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {feature.files.map((f) => (
@@ -99,6 +125,8 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
             branchName: branch.name,
             parentBranchName: parentBranch?.name,
             files: effectiveFiles,
+            existingBlueprint: branch.blueprint ?? undefined,
+            forceFullRegenerate: true,
           }),
         }).then((r) => r.json()),
         fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
@@ -181,6 +209,33 @@ export function BlueprintPanel({ branchId, accentColor }: BlueprintPanelProps) {
         {blueprint.purpose && (
           <Section title="Purpose">
             <p className="text-xs text-ink-secondary leading-relaxed">{blueprint.purpose}</p>
+          </Section>
+        )}
+
+        {/* Architecture */}
+        {blueprint.architecture && (
+          <Section title="Architecture">
+            <div className="space-y-2">
+              <div>
+                <span className="text-[10px] text-ink-muted">Pattern: </span>
+                <span className="text-[11px] text-ink-secondary">{blueprint.architecture.pattern}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-ink-muted">Init: </span>
+                <span className="text-[11px] font-mono text-ink-secondary">{blueprint.architecture.initFlow}</span>
+              </div>
+              {blueprint.architecture.stateModel?.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] text-ink-muted">State:</span>
+                  {blueprint.architecture.stateModel.map((s) => (
+                    <div key={s.name} className="flex items-center gap-1.5 ml-2">
+                      <span className="text-[10px] font-mono bg-surface-0 text-cyan-400/80 rounded px-1 py-0.5 border border-line">{s.name}</span>
+                      <span className="text-[10px] text-ink-muted">{s.type} · {s.scope}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </Section>
         )}
 

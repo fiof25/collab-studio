@@ -67,12 +67,18 @@ export function useAutoBlueprint() {
               branchName: branch.name,
               parentBranchName: parentBranch?.name,
               files,
+              existingBlueprint: branch.blueprint ?? undefined,
             }),
           });
 
           if (bpRes.ok) {
             const bpData = await bpRes.json();
-            if (bpData?.success) updateBlueprint(branch.id, bpData.blueprint);
+            if (bpData?.success) {
+              updateBlueprint(branch.id, bpData.blueprint);
+              if (bpData.blueprint.title) {
+                updateBranch(branch.id, { name: bpData.blueprint.title });
+              }
+            }
           }
 
           const snapRes = await fetch(`${SERVER_URL}/api/blueprint/snapshot`, {

@@ -7,7 +7,8 @@ import { captureHtmlScreenshot } from '@/utils/captureScreenshot';
 
 const SERVER_URL = '';
 
-/** Fire-and-forget: generate blueprint + snapshot after a code checkpoint */
+/** Fire-and-forget: generate blueprint + snapshot after a code checkpoint.
+ *  Runs sequentially to avoid bursting past the rate limit (10/min on /api/blueprint). */
 async function triggerAgents(
   branchId: string,
   branchName: string,
@@ -18,25 +19,44 @@ async function triggerAgents(
   screenshotBase64?: string | null,
   userPrompt?: string,
   aiSummary?: string,
+  existingBlueprint?: import('@/types/blueprint').Blueprint | null,
 ) {
-  const [bpRes, snapRes] = await Promise.allSettled([
-    fetch(`${SERVER_URL}/api/blueprint/generate`, {
+  try {
+    const bpRes = await fetch(`${SERVER_URL}/api/blueprint/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branchId, branchName, parentBranchName, files }),
-    }).then((r) => r.json()),
-    fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
+      body: JSON.stringify({
+        branchId,
+        branchName,
+        parentBranchName,
+        files,
+        conversationContext: userPrompt ? { lastUserMessage: userPrompt, lastAIResponse: aiSummary } : undefined,
+        existingBlueprint: existingBlueprint ?? undefined,
+      }),
+    });
+    if (bpRes.ok) {
+      const bpData = await bpRes.json();
+      if (bpData?.success) {
+        updateBlueprint(branchId, bpData.blueprint);
+        if (bpData.blueprint.title) {
+          updateBranch(branchId, { name: bpData.blueprint.title });
+        }
+      }
+    }
+
+    const snapRes = await fetch(`${SERVER_URL}/api/blueprint/snapshot`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ branchId, branchName, files, screenshotBase64, userPrompt, aiSummary }),
-    }).then((r) => r.json()),
-  ]);
-
-  if (bpRes.status === 'fulfilled' && bpRes.value?.success) {
-    updateBlueprint(branchId, bpRes.value.blueprint);
-  }
-  if (snapRes.status === 'fulfilled' && snapRes.value?.success && snapRes.value.description) {
-    updateBranch(branchId, { description: snapRes.value.description });
+    });
+    if (snapRes.ok) {
+      const snapData = await snapRes.json();
+      if (snapData?.success && snapData.description) {
+        updateBranch(branchId, { description: snapData.description });
+      }
+    }
+  } catch {
+    // Server not running or rate limited — silently skip
   }
 }
 
@@ -159,7 +179,7 @@ export function useChatStream(branchId: string) {
             : undefined;
           const aiSummary = fullContent.slice(0, 300) || undefined;
           const screenshotBase64 = await captureHtmlScreenshot(codeGenerated).catch(() => null);
-          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch, screenshotBase64, trimmed, aiSummary).catch(() => {});
+          triggerAgents(branchId, latestBranch.name, parentBranch?.name, newFiles, updateBlueprint, updateBranch, screenshotBase64, trimmed, aiSummary, latestBranch.blueprint).catch(() => {});
         }
       }
 
